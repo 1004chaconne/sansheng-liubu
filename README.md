@@ -1,406 +1,129 @@
 <div align="center">
 
-<img src="packaging/assets/staffdeck_banner_en.png" alt="StaffDeck logo" />
+# 三省六部
 
-<p align="center">
-  <a href="https://staffdeck.openbmb.cn/"><img src="https://img.shields.io/badge/Website-staffdeck.openbmb.cn-FF6B35?style=flat-square&logo=googlechrome&logoColor=white" alt="Official Website"/></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square" alt="License"/></a>
-  <a href="https://github.com/OpenBMB/StaffDeck/stargazers"><img src="https://img.shields.io/github/stars/OpenBMB/StaffDeck?style=flat-square" alt="Stars"/></a>
-  <br/>
-  <a href="#-Community"><img src="https://img.shields.io/badge/Discord-Join_Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"/></a>
-  &nbsp;
-  <a href="#-Community"><img src="https://img.shields.io/badge/Feishu-Community-00D6B9?style=for-the-badge&logo=bytedance&logoColor=white" alt="Feishu"/></a>
-  &nbsp;
-  <a href="#-Community"><img src="https://img.shields.io/badge/WeChat-Community-07C160?style=for-the-badge&logo=wechat&logoColor=white" alt="WeChat"/></a>
-  <br/>
-</p>
+**数字员工政事堂**
 
-**English** | [简体中文](./README.zh.md)
+把一堆平铺的 AI 助手，组织成一座有分工、有位次的官署
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=flat-square)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.1.0-8b5e34?style=flat-square)](#)
+[![Status](https://img.shields.io/badge/status-preview-a32b1e?style=flat-square)](#)
+
 </div>
 
-## News
-- **2026-10-22**: We present v1.0.0-preview for a modular architecture upgrade and CLI support.
-- **2026-09-01**: We present v0.5.0 for faster and more stable execution.
-- **2026-08-18**: We present v0.4.0 for multi-staff cooperation and faster runing.
-- **2026-08-06**: We present v0.3.0 for SOP editing and sandbox.
-- **2026-08-03**: We present v0.2.0 for harnessv2 and IM system.
-- **2026-07-15**: StaffDeck is now open source! We welcome your feedback and support with a Star.
+![政事堂 · 宋官署主题](screenshots/court-amber.png)
 
-# 💡 About StaffDeck
+---
 
-StaffDeck is an enterprise platform for building and managing digital employees. It helps professionals turn their work experience, business processes, and decision criteria into digital employees that can operate continuously, take over repetitive tasks, and preserve individual expertise as reusable, evolvable, and traceable organizational assets. StaffDeck is jointly developed by the [ModelBest](https://modelbest.cn/), [NEU-ModelBest Data Intelligence Joint Lab](https://neuir.github.io/), [THUNLP](https://nlp.csai.tsinghua.edu.cn/), [OpenBMB](https://www.openbmb.cn/home), and [AI9Stars](https://github.com/AI9Stars) for enterprises and institutions seeking to advance AI from a personal productivity tool to an organizational capability.
+## 这是什么
 
-## Core Features
+三省六部是一个数字员工工作台。它要解决的问题不是「AI 能不能干活」，而是——**当 AI 员工多到十几个之后，你怎么知道谁在负责什么、该不该批准它、它到底干得怎么样。**
 
-- 🧑‍💼 **Build and manage digital employees**: Turn professional experience, processes, and decision criteria into digital employees with positions, employee IDs, capability profiles, and work records. Support capability growth, permission isolation, publishing, and reuse.
-- 🧩 **State-machine-driven procedural skills**: Generate structured SOPs from natural language and use state machines to execute complex processes accurately. Support real-time switching across multiple flows, context preservation, visual editing, version management, and branch evolution.
-- 📚 **Document-structure-aware knowledge retrieval**: Build navigable indexes across documents, chapters, pages, summaries, and other levels, allowing digital employees to first estimate where information may reside and then locate the original text step by step. Support knowledge buckets, targeted retrieval, source citations, and retrieval debugging.
-- 🔌 **Autonomous execution and continuous improvement**: Perform real business operations through HTTP APIs, MCP, and scheduled tasks, then close the improvement loop with long-term memory, complete traces, human takeover, user feedback, and feedback analysis.
+答案借鉴了一千三百年前的组织智慧：不把员工平铺成一张卡片列表，而是给它们衙门、编制和位次。
 
-## Desktop Downloads
+- **员工归口**：每位数字员工属于六部之一，看得到它「在哪上班」
+- **决策分层**：草拟（中书省）→ 审议（门下省）→ 执行（尚书省）
+- **档案可查**：考绩、履历、调用追溯，而不是一盘散沙
 
-Visit the [StaffDeck official website](https://staffdeck.openbmb.cn/) or download the latest desktop release directly:
+## 界面
 
-| Platform | Architecture | Download |
-| --- | --- | --- |
-| macOS | Apple Silicon (arm64) | [Download `.dmg`](https://github.com/OpenBMB/StaffDeck/releases/latest/download/StaffDeck-macos-arm64.dmg) |
-| macOS | Intel (x86_64) | [Download `.dmg`](https://github.com/OpenBMB/StaffDeck/releases/latest/download/StaffDeck-macos-x86_64.dmg) |
-| Windows | x64 | [Download installer `.exe`](https://github.com/OpenBMB/StaffDeck/releases/latest/download/StaffDeck-windows-x64-setup.exe) |
-| Linux | x86_64 (Debian/Ubuntu) | [Download `.deb`](https://github.com/OpenBMB/StaffDeck/releases/latest/download/StaffDeck-linux-x86_64.deb) |
+登录后的第一屏是「政事堂」——六部并排，谁在岗、谁空缺，一眼看清。
 
-Linux packages listen on `127.0.0.1` by default. Use `staffdeck setup` from a
-terminal to choose the listening mode and port, including on a headless host:
+| 宋官署 | 青白 |
+|---|---|
+| ![宋官署](screenshots/court-amber.png) | ![青白](screenshots/court-azure.png) |
+
+两套主题不只是换色：连标题字族（宋体 / 黑体）、卡片圆角、员工形象都会跟着换。
+
+## 六部与名臣
+
+在宋官署主题下，每位员工会以对应名臣的形象出现：
+
+| 部 | 职能 | 名臣 | 视觉锚点 |
+|---|---|---|---|
+| 吏部 | 人事 · 任免考绩 | 张居正 | 乌纱紫袍 · 一摞考成册 |
+| 户部 | 财务 · 钱粮账册 | 萧何 | 汉冠褐袍 · 抱竹简 |
+| 礼部 | 宾客 · 教化礼仪 | 孔子 | 儒冠长须 · 竹简 |
+| 兵部 | 军务 · 调度驿传 | 诸葛亮 | 纶巾羽扇 |
+| 刑部 | 法务 · 刑名审计 | 包拯 | 黑袍 · 额上月牙 · 惊堂木 |
+| 工部 | 营造 · 百工技艺 | 沈括 | 幞巾 · 手举铜仪 |
+
+未匹配到部门的员工会落在「尚书省直辖」，不会凭空消失。
+
+## 设计取向
+
+**克制的两套语言。** 宋官署用米纸、墨、一点朱砂——朱只给「批」用，主操作走墨色；青白参考微信式的克制（浅灰画布、白色单元格、单一强调色），标题不带衬线。
+
+**一切靠变量。** 主题是 `<html data-theme="...">` 上的一个属性，两套配色共用同一份组件代码；切换写入 localStorage。
+
+**不为好看牺牲可用。** 导航仍是「数字员工」「知识库」「SOP」这些能看懂的名字，官署语义放在门面和分组上，不让人猜「百官」点进去是什么。
+
+## 快速开始
+
+**环境要求**：Python 3.11+、Node.js 22.19+（或 24+）
 
 ```bash
-staffdeck setup
-staffdeck setup --mode local --port 5173
-staffdeck setup --mode lan --port 5173
-staffdeck setup --mode public --port 5173 --public-url https://staff.example.com
-```
+git clone https://github.com/1004chaconne/sansheng-liubu.git
+cd sansheng-liubu
 
-`local` listens only on the machine; `lan` and `public` listen on `0.0.0.0`.
-`--port` sets the listening port. In interactive terminals, `public` tries to
-infer a public URL first; if it cannot, or when running headless, pass
-`--public-url` explicitly. For public deployments, use an HTTPS reverse proxy
-and set the same public URL as `OIDC_REDIRECT_URI` when SSO is enabled. The
-setup is saved per user and applied on the next launch.
-
-## Agent-Friendly Quick Deploy
-
-Paste the prompt below into Cursor, Claude Code, or Codex. For code-based
-deployments, you can also override the launch at runtime with
-`ULTRARAG_HOST`, `ULTRARAG_PORT`, and `STAFFDECK_PUBLIC_URL`:
-
-```text
-Read https://raw.githubusercontent.com/OpenBMB/StaffDeck/main/README.md.
-Clone the OpenBMB/StaffDeck repository, prepare Python 3.11 or newer and Node.js 22.19+,
-create backend/.venv, install the backend and frontend dependencies, copy
-backend/.env.example to backend/.env, ask me for the OpenAI-compatible model
-endpoint and API key if they are missing, and use the commands documented for
-the current OS. Start with scripts/dev_up.sh --detach on macOS/Linux/WSL or
-.\scripts\dev_up.ps1 --detach on Windows PowerShell, then verify /api/health
-plus /workspace/gallery before reporting success.
-```
-
-
-## Table of Contents
-
-- [💡 About StaffDeck](#-about-staffdeck)
-  - [Core Features](#core-features)
-  - [Desktop Downloads](#desktop-downloads)
-  - [Agent-Friendly Quick Deploy](#agent-friendly-quick-deploy)
-  - [Table of Contents](#table-of-contents)
-  - [Quick Start](#quick-start)
-    - [Requirements](#requirements)
-    - [1. Clone and Install](#1-clone-and-install)
-    - [2. Configure a Model](#2-configure-a-model)
-    - [3. Launch the Web Demo](#3-launch-the-web-demo)
-    - [4. Verify the Installation](#4-verify-the-installation)
-    - [Useful Commands](#useful-commands)
-      - [Unified Python Entry](#unified-python-entry)
-  - [Core Workflows](#core-workflows)
-  - [Project Structure](#project-structure)
-  - [FAQ](#faq)
-  - [Roadmap](#roadmap)
-- [💬 Community](#-community)
-  - [Contributing](#contributing)
-  - [Risks and Limitations](#risks-and-limitations)
-  - [Citation](#citation)
-  - [License](#license)
-  - [Acknowledgments](#acknowledgments)
-
-## OSS release and CLI
-
-This checkout contains the standalone OSS product and the Harness v3 runtime.
-See [installation and upgrades](INSTALL.md) and the [CLI guide](CLI.md).
-Use Python 3.11+ and Node.js **22.19+ within 22.x, or 24+**:
-
-```sh
 python3 prepare.py
 staffdeck serve
-# In another terminal:
-staffdeck login       # fresh installations: admin / admin
-staffdeck agent list
-staffdeck chat
+```
+
+另开一个终端：
+
+```bash
+staffdeck login          # 全新安装：admin / admin
 staffdeck chat --agent 财务
 ```
 
-Fresh installations include IT, HR, Administration, Finance and Legal employees
-owned by `@admin`, with their SOPs, knowledge bases, skills and example connectors.
-Existing installations retain their accounts, data and encryption key.
-Configure a model before chatting; provider credentials are never shipped.
-[Release build instructions](packaging/RELEASE.md).
+Windows PowerShell 下把 `python3` 换成 `python`。
 
-## Quick Start
+> 本仓库不包含前端构建产物（`dist/` 已在 `.gitignore` 中）。若要单独开发前端：
+> `cd frontend-enterprise && npm install && npm run dev`
 
-### Requirements
+## 项目结构
 
-- macOS, Linux, WSL, or Windows PowerShell
-- Python **3.11+**
-- Node.js **20+** and npm
-- An OpenAI-compatible Chat Completions endpoint and API key
-- No CUDA requirement for the application itself; hardware requirements depend on the selected model service
-
-### 1. Clone and Install
-
-Clone the repository first:
-
-```bash
-git clone https://github.com/OpenBMB/StaffDeck.git
-cd StaffDeck
+```
+frontend-enterprise/        前端（React 18 + Vite + Tailwind 4）
+  src/pages/CourtPage.tsx   ← 政事堂（本项目新增）
+  src/lib/theme.ts          ← 主题切换与订阅
+  src/components/EmployeeAvatar.tsx  ← 按主题切换员工形象
+  src/assets/ministers/     ← 六部名臣形象
+  src/styles.css            ← 末尾的「宋官署档案主题层」
+backend/                    后端（Python / FastAPI）
+harness-engine/             运行时
+packaging/                  打包与发行
 ```
 
-On macOS, Linux, or WSL:
+## 技术栈
 
-```bash
-python3 -m venv backend/.venv
-backend/.venv/bin/python -m pip install -e "backend[dev]"
-npm --prefix frontend-enterprise ci
-cp backend/.env.example backend/.env
-```
+React 18 · TypeScript · Vite · Tailwind CSS 4 · shadcn/ui · Python 3.11 · FastAPI
 
-On Windows PowerShell:
+---
 
-```powershell
-py -3 -m venv backend\.venv
-.\backend\.venv\Scripts\python.exe -m pip install -e "backend[dev]"
-npm --prefix frontend-enterprise ci
-Copy-Item backend\.env.example backend\.env
-```
+## 衍生与许可
 
-### 2. Configure a Model
+本项目是 [OpenBMB/StaffDeck](https://github.com/OpenBMB/StaffDeck) 的二次开发作品，遵循 **Apache License 2.0**，原始许可证见 [LICENSE](LICENSE)。
 
-Edit `backend/.env` before the first startup:
+**改动范围**：
 
-```dotenv
-APP_SECRET="replace-with-a-long-random-secret"
-DEMO_MODEL_BASE_URL="https://your-openai-compatible-endpoint/v1"
-DEMO_MODEL_NAME="your-model-name"
-DEMO_MODEL_API_KEY="your-api-key"
-```
+- 重做前端视觉系统（主题层、字体、圆角、配色）
+- 新增「政事堂」首页与六部归口逻辑
+- 新增宋官署 / 青白双主题切换
+- 新增六部名臣形象与主题联动
 
-The API key is used to create the initial model configuration and is encrypted before being stored in the database. Do not commit `backend/.env`. After startup, model services can also be managed from **Admin → Model Configuration**.
+**未改动**：后端服务、数据模型、API 协议、执行引擎。
 
-### 3. Launch the Web Demo
+本项目与 OpenBMB、面壁智能及其关联机构无隶属关系，亦未获得其背书；「三省六部」仅指本仓库的改造主题，不使用原项目的名称或标识进行推广。
 
-| Platform | Recommended command |
-| --- | --- |
-| macOS, Linux, or WSL | `scripts/dev_up.sh --detach` |
-| Windows PowerShell | `.\scripts\dev_up.ps1 --detach` |
+## 致谢
 
-Both wrappers call the same cross-platform Python lifecycle entry, `scripts/dev.py`. The startup process builds the StaffDeck frontend and serves the UI, API, and Swagger documentation from one FastAPI process on port `5173`.
+感谢 [OpenBMB/StaffDeck](https://github.com/OpenBMB/StaffDeck) 团队开源了这套数字员工底座——多员工协作、状态机驱动的流程、文档结构感知检索这些能力，是本次改造能够成立的前提。
 
-Initial administrator credentials: username `admin`, password `admin`. Please change the password after first login.
+---
 
-### 4. Verify the Installation
-
-On macOS, Linux, or WSL:
-
-```bash
-curl http://127.0.0.1:5173/api/health
-```
-
-On Windows PowerShell:
-
-```powershell
-curl.exe http://127.0.0.1:5173/api/health
-```
-
-Expected output:
-
-```json
-{"status":"ok"}
-```
-
-Open [http://127.0.0.1:5173/workspace/gallery](http://127.0.0.1:5173/workspace/gallery), select a digital employee, and send the first message. The answer and its execution record should stream into the same conversation turn.
-
-### Useful Commands
-
-| Action | macOS, Linux, or WSL | Windows PowerShell |
-| --- | --- | --- |
-| Start in the background | `scripts/dev_up.sh --detach` | `.\scripts\dev_up.ps1 --detach` |
-| Start in the foreground | `scripts/dev_up.sh` | `.\scripts\dev_up.ps1` |
-| Inspect service status | `scripts/dev_status.sh` | `.\scripts\dev_status.ps1` |
-| Stop the local service | `scripts/dev_down.sh` | `.\scripts\dev_down.ps1` |
-
-#### Unified Python Entry
-
-The wrapper scripts above delegate to `scripts/dev.py`. It can also be called directly with the project virtual environment created in step 1, avoiding any dependency on shell script execution or a system Python launcher:
-
-| Platform | Direct background start |
-| --- | --- |
-| macOS, Linux, or WSL | `backend/.venv/bin/python scripts/dev.py up --detach` |
-| Windows PowerShell | `.\backend\.venv\Scripts\python.exe scripts\dev.py up --detach` |
-
-Replace `up --detach` with another lifecycle argument when needed:
-
-| Action | Arguments |
-| --- | --- |
-| Start in the background | `up --detach` |
-| Start in the foreground | `up` |
-| Inspect service status | `status` |
-| Stop the local service | `down` |
-
-> Full guide → [StaffDeck Tutorial](https://staffdeck.openbmb.cn/#/docs/introduce?lang=en)
-
-
-
-
-## Core Workflows
-
-1. **Create a digital employee**: Define the position, role boundaries, service style, creator, and access scope.
-2. **Configure employee capabilities**: Copy from the marketplace or create knowledge bases, general skills, SOPs, and tools without modifying marketplace originals.
-3. **Start a session**: Enter from the digital employee marketplace or employee list; the formal session is persisted after the first message is sent.
-4. **Execute and observe**: Inspect streaming intent, retrieval, skill, tool, review, and response events in the execution record.
-5. **Intervene when necessary**: Continue with queued requests, cancel a run, hand work to a person, or process pending answers.
-6. **Operate continuously**: Improve employee capabilities over time through memory, feedback, conversation logs, and scheduled tasks.
-
-## Channel Integration (WeChat / WeCom)
-
-Digital employees can serve users directly over IM channels: users chat with employees in WeChat or WeCom, while multi-agent dispatch, intent-based auto routing, identity merging, and conversation observability are built into the platform. The channel kernel is channel-agnostic (adapter registry) — new channels only need a new adapter.
-
-**Capabilities**
-
-- Mount multiple digital employees on one channel account; dispatch with `/员工`, `/切换 <name>`, `/当前`, `/帮助`;
-- Intent auto-routing: each message is classified by an LLM and routed to the best-matching employee (stricter threshold during SOPs; sticky during human handoff and after manual switches);
-- Identity merge: channel users run `/绑定 <one-time code>` to merge their channel identity into an existing StaffDeck account (memory and sessions unified; `/解绑` to revert);
-- Conversation history and delivery logs grouped by day with pagination; admins and employee creators can review all channel conversations per permission;
-- Reliability: inbound idempotency, crash recovery, outbound retry with backoff, token-expiry alerts, and WeChat session self-healing.
-
-**WeChat (personal, iLink protocol)**
-
-1. Open "渠道接入" (Channel Integration) in the sidebar → "接入渠道" → choose "微信" and pick a default employee;
-2. Click "扫码接入" and scan with WeChat (QR expires in ~2 minutes and auto-refreshes);
-3. Message the bound WeChat account (DM or group) to chat.
-
-**WeCom (bot WebSocket)**
-
-1. WeCom admin console → Apps → Bot, create a bot and copy its Bot ID and Secret;
-2. "接入渠道" → choose "企业微信", pick a default employee and create;
-3. Enter Bot ID and Secret (optionally fill in 企业 ID/Corp ID to distinguish duplicate userids across enterprises — recommended);
-4. The long connection is established automatically; once it shows "已连接", messages flow.
-
-**Production checklist**
-
-- Set a strong random `APP_SECRET` (channel credentials encryption derives from it; better to also set an independent `CHANNEL_SECRET`);
-- Channel credentials (bot tokens/secrets) are stored Fernet-encrypted and never returned by any API;
-- Binding management is restricted to admins or the binding creator; mounting an employee exposes it to all users of that channel — grant with care.
-
-## Project Structure
-
-```text
-StaffDeck/
-├── backend/                  # FastAPI APIs, agent runtime, storage, and task workers
-├── frontend-enterprise/      # React/TypeScript StaffDeck workspace
-├── docs/                     # Tutorials, APIs, schemas, and example flows
-├── scripts/                  # Single-port service lifecycle and validation scripts
-├── packaging/                # macOS, Linux, and Windows packaging assets
-├── README.md                 # English
-└── README.zh.md              # Simplified Chinese
-```
-
-
-## FAQ
-
-<details>
-<summary><strong>The page opens, but the digital employee does not answer.</strong></summary>
-
-Check the selected model configuration, API key, model name, and model service network. Then inspect the execution record and `.dev/logs/app.log` to identify the exact error returned by the model service.
-</details>
-
-<details>
-<summary><strong>Can StaffDeck run without a local GPU?</strong></summary>
-
-Yes. The application calls an OpenAI-compatible model endpoint, so GPU requirements depend on the model service you deploy or use.
-</details>
-
-<details>
-<summary><strong>Why can regular users use marketplace resources but not edit them?</strong></summary>
-
-Marketplace resources are reusable templates. Regular users can copy or bind authorized resources to their own employees, while the original resources remain protected by creator and administrator permissions.
-</details>
-
-<details>
-<summary><strong>How do I upgrade an existing deployment to the latest release?</strong></summary>
-
-For desktop installations, download the latest installer and install it over the existing one; your data directory is preserved and schema changes are applied automatically on first launch. For source deployments, back up the data directory, `backend/skill_agent_loop.db` and `backend/.env`, update the checkout, then restart with `scripts/dev_up.sh` or, for a `staffdeck serve` setup, `python3 prepare.py` first. See the [Upgrade Guide](docs/upgrade-guide.md) for step-by-step instructions.
-</details>
-
-## Roadmap
-
-- [ ] Group chat, multi-digital-employee communication, and task division
-- [x] More enterprise connectors and reviewed marketplace resources (WeChat and WeCom channel integration shipped)
-- [ ] Fine-grained approval policies for high-risk tool actions
-
-Roadmap priorities are driven by real deployment needs. Please open an [Issue](https://github.com/OpenBMB/StaffDeck/issues) with a reproducible scenario and expected behavior.
-
-# 💬 Community
-- For bugs and feature requests, please open a [GitHub Issues](https://github.com/OpenBMB/StaffDeck/issues)。
-- We have temporarily paused business cooperation.
-- Join our community channels:
-
-<table width="100%">
-<tr>
-<td width="33%" align="center"><b>WeChat Community</b></td>
-<td width="33%" align="center"><b>Feishu Community</b></td>
-<td width="33%" align="center"><b>Discord Community</b></td>
-</tr>
-<tr>
-<td align="center"><img src="packaging/assets/qr-wechat.png" width="200" alt="微信二维码"/></td>
-<td align="center"><img src="packaging/assets/qr-feishu.jpg" width="200" alt="飞书二维码"/></td>
-<td align="center"><img src="packaging/assets/qr-discord.png" width="200" alt="Discord 二维码"/></td>
-</tr>
-</table>
-
-
-## Contributing
-
-Contributions from collaborators with repository access are welcome:
-
-- Submit reproducible bugs and permission issues
-- Propose digital employee, knowledge, skill, SOP, or tool workflows
-- Submit focused pull requests with tests and browser validation
-- Improve documentation and Chinese/English translations
-
-Keep unrelated worktree changes intact, add tests proportional to the affected behavior, and state the routes and user roles used for UI verification in each pull request.
-
-## Risks and Limitations
-
-- Model responses can be incorrect, incomplete, or inconsistent. Execution records improve auditability but do not guarantee correctness.
-- Knowledge retrieval quality depends on source-document quality, parsing, indexing, permissions, and model capabilities.
-- External tools and generated runners can have real side effects. Use least-privilege credentials and configure human approval for high-risk actions.
-- Scheduled tasks depend on a continuously running worker and correct user time-zone settings.
-- This project is not a substitute for professional review in legal, medical, financial, security, or other regulated fields.
-- Do not use this platform to process data or automate important decisions without appropriate authorization, privacy protection, and human oversight.
-
-## Citation
-
-When using StaffDeck in internal research or authorized public materials, cite:
-
-```bibtex
-@software{StaffDeck2026,
-  title  = {StaffDeck: Build, Run, and Govern Enterprise Digital Employees},
-  author = {OpenBMB},
-  year   = {2026},
-  url    = {https://github.com/OpenBMB/StaffDeck}
-}
-```
-## Star History
-
-<a href="https://www.star-history.com/?repos=openbmb%2Fstaffdeck&type=date&legend=top-left">
- <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=openbmb/staffdeck&type=date&theme=dark&legend=top-left&sealed_token=lLohLC57bGAPh4lrzSYu2xW6Fmkavbj5r-T25GGt-jA10veIrv9OBPs0wiE5A98VIxP0NyxjbloW1t5OnPdVn6RT_L6Dmsp5EnfiWsGirs6G3Bv5_l_zUw" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=openbmb/staffdeck&type=date&legend=top-left&sealed_token=lLohLC57bGAPh4lrzSYu2xW6Fmkavbj5r-T25GGt-jA10veIrv9OBPs0wiE5A98VIxP0NyxjbloW1t5OnPdVn6RT_L6Dmsp5EnfiWsGirs6G3Bv5_l_zUw" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=openbmb/staffdeck&type=date&legend=top-left&sealed_token=lLohLC57bGAPh4lrzSYu2xW6Fmkavbj5r-T25GGt-jA10veIrv9OBPs0wiE5A98VIxP0NyxjbloW1t5OnPdVn6RT_L6Dmsp5EnfiWsGirs6G3Bv5_l_zUw" />
- </picture>
-</a>
-
-## License
-
-This project is open source under the [Apache License 2.0](LICENSE).
-
-Bundled third-party components retain their respective licenses.
-
-## Acknowledgments
-
-StaffDeck is incubated by the [OpenBMB](https://www.openbmb.cn/) ecosystem.
+<div align="center">
+<sub>三省总其成，六部分其职</sub>
+</div>
