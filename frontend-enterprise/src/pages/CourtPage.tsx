@@ -54,12 +54,20 @@ export default function CourtPage({ onLogout }: { onLogout?: () => void }) {
   };
 
   useEffect(() => {
-    const controller = new AbortController();
-    loadEmployeeDirectory(controller.signal)
-      .then((rows) => setAgents(rows.filter((a) => !a.is_overall)))
+    // 不用 AbortController：loadEmployeeDirectory 带共享缓存，取消会连累其他消费者。
+    // 只标记本组件是否已卸载，避免卸载后 setState。
+    let cancelled = false;
+    loadEmployeeDirectory()
+      .then((rows) => {
+        if (!cancelled) setAgents(rows.filter((a) => !a.is_overall));
+      })
       .catch(() => undefined)
-      .finally(() => setLoading(false));
-    return () => controller.abort();
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const groups = useMemo(

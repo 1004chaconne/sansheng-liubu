@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react';
+
 export type ThemeKey = 'amber' | 'azure';
 
 export const THEMES: { key: ThemeKey; label: string; hint: string; swatch: string; ring: string }[] = [
@@ -19,6 +21,21 @@ export function applyTheme(theme: ThemeKey): void {
   } catch {
     // 隐私模式下不可写，忽略即可
   }
+  listeners.forEach((fn) => fn());
+}
+
+const listeners = new Set<() => void>();
+
+function subscribeTheme(cb: () => void): () => void {
+  listeners.add(cb);
+  return () => {
+    listeners.delete(cb);
+  };
+}
+
+/** 订阅当前主题；切换时组件会重渲染（用于替换员工头像等） */
+export function useTheme(): ThemeKey {
+  return useSyncExternalStore(subscribeTheme, readTheme, () => 'amber' as ThemeKey);
 }
 
 export function readTheme(): ThemeKey {
