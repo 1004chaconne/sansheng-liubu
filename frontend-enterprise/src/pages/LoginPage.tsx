@@ -58,10 +58,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   }
 
   const inputBaseClass =
-    'flex h-[44px] w-full items-center gap-[8px] rounded-[10px] border bg-white px-[16px] transition-colors';
+    'flex h-[44px] w-full items-center gap-[8px] rounded-[4px] border bg-[var(--surface)] px-[16px] transition-colors';
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-white">
+    <div className="relative flex min-h-screen flex-col bg-[var(--background)]">
       <AppHeader
         className="h-[60px] shrink-0 px-[32px]"
         left={<BrandLogo markSize={28} />}
@@ -69,14 +69,20 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       />
 
       <main className="flex flex-1 flex-col items-center px-[32px]">
-        <div className="flex flex-col items-center pt-[60px]">
-          <span className="flex items-center justify-center rounded-[10px] border-[0.5px] border-[#e3e7f1] bg-[#f6f6f6] px-[20px] py-[6px] text-[14px] text-[#464c5e]">
-            我们来做什么？
+        <div className="flex flex-col items-center pt-[64px]">
+          <span className="flex items-center justify-center rounded-[3px] border-[0.5px] border-[var(--border)] bg-[var(--surface)] px-[18px] py-[6px] text-[12px] tracking-[0.34em] text-[var(--muted-foreground)]">
+            政事堂
           </span>
-          <h1 className="mt-[6px] text-center text-[54px] font-semibold leading-[80px] tracking-[1.08px] text-[#18181a]">
-            StaffDeck
-            <br />
-            数字员工运营平台
+          <h1
+            className="mt-[18px] flex flex-col items-center text-[var(--foreground)]"
+            style={{ fontFamily: 'var(--font-song)' }}
+          >
+            <span className="pl-[0.16em] text-[50px] font-medium leading-[1.2] tracking-[0.16em]">
+              三省六部
+            </span>
+            <span className="mt-[16px] pl-[0.42em] text-[13px] font-normal tracking-[0.42em] text-[var(--muted-foreground)]">
+              数字员工政事堂
+            </span>
           </h1>
 
           {!showForm ? (
@@ -169,7 +175,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         <div className="mt-[32px] flex w-full justify-center">
           <img
             src={loginPreview}
-            alt="StaffDeck 产品预览"
+            alt="三省六部 产品预览"
             className="h-auto w-full max-w-[1200px] select-none object-contain"
             draggable={false}
           />

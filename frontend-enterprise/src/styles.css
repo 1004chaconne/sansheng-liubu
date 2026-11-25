@@ -5220,7 +5220,7 @@ body,
 
 .content {
   padding: 18px;
-  background: #f7f8fa;
+  background: var(--background);
 }
 
 .page {
@@ -7093,3 +7093,117 @@ body,
     @apply border-border outline-ring/50;
   }
 }
+
+/* ==========================================================================
+   三省六部 · 宋官署档案主题层
+   只覆盖 token，不改动上方任何原始定义。
+   回滚方式：删除本段，即恢复 StaffDeck 原始视觉。
+   ========================================================================== */
+
+:root {
+  /* 纸与墨 */
+  --background: #e9e3d3;
+  --foreground: #1c1b17;
+  --surface: #fdfcf7;
+  --surface-raised: #fdfcf7;
+  --surface-muted: #ebe6d9;
+  --surface-subtle: #faf8f0;
+  --card: #fbfaf4;
+  --card-foreground: #1c1b17;
+  --popover: #fbfaf4;
+  --popover-foreground: #1c1b17;
+
+  /* 线与灰阶 */
+  --border: #ded7c7;
+  --border-strong: #cbc3b0;
+  --line: #e8e1d2;
+  --input: #ded7c7;
+  --muted: #ebe6d9;
+  --muted-foreground: #7a7466;
+  --muted-soft: #8a8478;
+  --ink-soft: #4a4841;
+  --secondary: #ebe6d9;
+  --secondary-foreground: #1c1b17;
+
+  /* 朱砂只给「批」用；主操作走墨色 */
+  --accent: #a32b1e;
+  --accent-soft: #f5e7e2;
+  --accent-foreground: #fdfaf3;
+  --primary: #23211c;
+  --primary-foreground: #fdfaf3;
+  --ring: #a32b1e;
+
+  /* 语义色往旧纸上压一档，避免荧光感 */
+  --danger: #b3382c;
+  --destructive: #b3382c;
+  --warning: #9a6b1f;
+  --success: #2f6b4f;
+  --copper: #a85d32;
+  --olive: #6f7b42;
+
+  /* 图表：朱 / 松 / 铜 / 赭 / 墨 */
+  --chart-1: #a32b1e;
+  --chart-2: #2f5d50;
+  --chart-3: #a85d32;
+  --chart-4: #8a6a3f;
+  --chart-5: #4a4841;
+
+  /* 侧栏：米灰纸，不是纯白 */
+  --sidebar: #f5f2e8;
+  --sidebar-foreground: #6b6656;
+  --sidebar-primary: #a32b1e;
+  --sidebar-primary-foreground: #fdfaf3;
+  --sidebar-accent: rgba(163, 43, 30, 0.06);
+  --sidebar-accent-foreground: #1c1b17;
+  --sidebar-border: #e2dccb;
+  --sidebar-ring: #a32b1e;
+
+  /* 圆角收窄：公文纸不是圆角卡片 */
+  --radius: 0.25rem;
+
+  --page-gradient-a: rgba(163, 43, 30, 0.05);
+  --page-gradient-top: #faf8f0;
+  --page-gradient-bottom: #efeade;
+  --panel-bg: rgba(249, 247, 240, 0.86);
+  --shadow-float: 0 20px 54px rgba(48, 40, 28, 0.1);
+  --shadow-soft: 0 10px 30px rgba(48, 40, 28, 0.055);
+
+  /* 字体：正文黑体，标题另指定宋体 */
+  --font-body: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  --font-song: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong", SimSun, serif;
+}
+
+/* 标题走宋体，正文留给黑体 */
+.brand-title,
+.page-title h1,
+.page-title h2,
+.page-title h3,
+.page-title h4,
+h1,
+h2 {
+  font-family: var(--font-song) !important;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+/* 对抗 SD1 视觉对齐层里的 !important 硬编码背景 */
+.app-shell,
+.app-shell .content,
+.content {
+  background: var(--background) !important;
+  letter-spacing: normal !important;
+}
+
+.sidebar {
+  background: var(--sidebar) !important;
+  border-right: 1px solid var(--sidebar-border) !important;
+  backdrop-filter: none !important;
+}
+
+.topbar {
+  background: var(--panel-bg) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+
+
+

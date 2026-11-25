@@ -1,17 +1,16 @@
 import { cn } from '@/lib/utils';
-import logoMark from '../assets/LOGO.svg';
 
 export type BrandLogoProps = {
-  /** Hide the "OpenBMB / StaffDeck" wordmark and only render the logo mark. */
+  /** Hide the "三省六部" wordmark and only render the seal mark. */
   markOnly?: boolean;
-  /** Size of the square logo mark in pixels. */
+  /** Size of the square seal in pixels. */
   markSize?: number;
   className?: string;
   /** Extra classes applied to the wordmark wrapper (e.g. to hide it responsively). */
   wordmarkClassName?: string;
 };
 
-/** Brand logo lockup (logo mark + "OpenBMB" / "StaffDeck" wordmark). Figma node 504:7137. */
+/** 三省六部 · 朱砂方印 + 宋体字标 */
 export default function BrandLogo({
   markOnly = false,
   markSize = 28,
@@ -19,20 +18,45 @@ export default function BrandLogo({
   wordmarkClassName,
 }: BrandLogoProps) {
   return (
-    <span className={cn('flex items-center gap-[8px] overflow-hidden p-[4px]', className)}>
-      <img
-        src={logoMark}
-        alt="StaffDeck"
+    <span className={cn('flex items-center gap-[9px] overflow-hidden p-[4px]', className)}>
+      <svg
+        width={markSize}
+        height={markSize}
+        viewBox="0 0 36 36"
         className="shrink-0"
-        style={{ width: markSize, height: markSize }}
-      />
+        role="img"
+        aria-label="三省六部"
+      >
+        <rect x="0.5" y="0.5" width="35" height="35" rx="2" fill="#a32b1e" />
+        <rect
+          x="3.5"
+          y="3.5"
+          width="29"
+          height="29"
+          fill="none"
+          stroke="#f0e6d8"
+          strokeWidth="0.8"
+          opacity="0.55"
+        />
+        <text
+          x="18"
+          y="19"
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontFamily="'Songti SC','STSong','SimSun',serif"
+          fontSize="18"
+          fill="#f4f1e8"
+        >
+          枢
+        </text>
+      </svg>
       {!markOnly && (
         <span className={cn('flex flex-col items-center gap-[2px] leading-none', wordmarkClassName)}>
-          {/* <span className="text-[12px] font-semibold leading-none text-[#0f136c]">
-            OpenBMB
-          </span> */}
-          <strong className="text-[17px] font-semibold leading-none text-[#18181a]">
-            StaffDeck
+          <strong
+            className="text-[16px] font-semibold leading-none tracking-[0.16em] text-[#1c1b17]"
+            style={{ fontFamily: 'var(--font-song)' }}
+          >
+            三省六部
           </strong>
         </span>
       )}
