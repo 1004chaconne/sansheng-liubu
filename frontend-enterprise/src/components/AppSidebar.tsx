@@ -29,6 +29,7 @@ import { employeeDisplayNameWithCreator, employeeProfile, staffdeckDisplayText }
 import { EnterpriseRoute } from '../enums/routes';
 import type { AgentProfileRead, ChatSession, TeamRead } from '../types';
 import IconPlatform from '../assets/icons/nav-platform.svg?react';
+import IconCourt from '../assets/icons/nav-court.svg?react';
 import IconAgents from '../assets/icons/nav-agents.svg?react';
 import IconTeams from '../assets/icons/nav-teams.svg?react';
 import IconFile from '../assets/icons/profile-file.svg?react';
@@ -64,6 +65,7 @@ type NavItem = {
 };
 
 const PRIMARY_NAV: NavItem[] = [
+  { route: EnterpriseRoute.Court, label: '政事堂', Icon: IconCourt },
   { route: EnterpriseRoute.Platform, label: '开放广场平台', Icon: IconPlatform },
   { route: EnterpriseRoute.Agents, label: '我的数字员工', Icon: IconAgents },
   { route: EnterpriseRoute.Teams, label: '我的团队', Icon: IconTeams },

@@ -27,14 +27,14 @@ export default function BrandLogo({
         role="img"
         aria-label="三省六部"
       >
-        <rect x="0.5" y="0.5" width="35" height="35" rx="2" fill="#a32b1e" />
+        <rect x="0.5" y="0.5" width="35" height="35" rx="2" fill="var(--accent)" />
         <rect
           x="3.5"
           y="3.5"
           width="29"
           height="29"
           fill="none"
-          stroke="#f0e6d8"
+          stroke="var(--accent-foreground)"
           strokeWidth="0.8"
           opacity="0.55"
         />
@@ -45,7 +45,7 @@ export default function BrandLogo({
           dominantBaseline="central"
           fontFamily="'Songti SC','STSong','SimSun',serif"
           fontSize="18"
-          fill="#f4f1e8"
+          fill="var(--accent-foreground)"
         >
           枢
         </text>

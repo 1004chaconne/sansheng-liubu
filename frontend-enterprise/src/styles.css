@@ -7102,10 +7102,10 @@ body,
 
 :root {
   /* 纸与墨 */
-  --background: #e9e3d3;
+  --background: #f6eddc;
   --foreground: #1c1b17;
-  --surface: #fdfcf7;
-  --surface-raised: #fdfcf7;
+  --surface: #fffcf5;
+  --surface-raised: #fffcf5;
   --surface-muted: #ebe6d9;
   --surface-subtle: #faf8f0;
   --card: #fbfaf4;
@@ -7149,7 +7149,7 @@ body,
   --chart-5: #4a4841;
 
   /* 侧栏：米灰纸，不是纯白 */
-  --sidebar: #f5f2e8;
+  --sidebar: #f1e4cd;
   --sidebar-foreground: #6b6656;
   --sidebar-primary: #a32b1e;
   --sidebar-primary-foreground: #fdfaf3;
@@ -7204,6 +7204,81 @@ h2 {
   background: var(--panel-bg) !important;
   border-bottom: 1px solid var(--line) !important;
 }
+
+/* ==========================================================================
+   第二套主题 · 青白（参考微信式克制：浅灰画布 + 白色单元格 + 单一青色）
+   切换方式：<html data-theme="azure">
+   ========================================================================== */
+
+[data-theme='azure'] {
+  --background: #f4f6f7;
+  --foreground: #16191c;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-muted: #eef1f3;
+  --surface-subtle: #fafbfc;
+  --card: #ffffff;
+  --card-foreground: #16191c;
+  --popover: #ffffff;
+  --popover-foreground: #16191c;
+
+  --border: #e3e7ea;
+  --border-strong: #cfd5da;
+  --line: #ebeff2;
+  --input: #e3e7ea;
+  --muted: #eef1f3;
+  --muted-foreground: #5f6b74;
+  --muted-soft: #8b969f;
+  --ink-soft: #3c464e;
+  --secondary: #eef1f3;
+  --secondary-foreground: #16191c;
+
+  --accent: #0f766e;
+  --accent-soft: #e4f2f0;
+  --accent-foreground: #ffffff;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --ring: #0f766e;
+
+  --danger: #d93a2b;
+  --destructive: #d93a2b;
+  --warning: #b45309;
+  --success: #12855d;
+
+  --chart-1: #0f766e;
+  --chart-2: #2563a8;
+  --chart-3: #12855d;
+  --chart-4: #b45309;
+  --chart-5: #5f6b74;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #5f6b74;
+  --sidebar-primary: #0f766e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(15, 118, 110, 0.07);
+  --sidebar-accent-foreground: #16191c;
+  --sidebar-border: #ebeff2;
+  --sidebar-ring: #0f766e;
+
+  --radius: 0.5rem;
+  --page-gradient-a: rgba(15, 118, 110, 0.05);
+  --page-gradient-top: #fafbfc;
+  --page-gradient-bottom: #f0f4f5;
+  --panel-bg: rgba(255, 255, 255, 0.88);
+
+  /* 标题回到黑体：微信式界面不用衬线 */
+  --font-song: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+}
+
+[data-theme='azure'] h1,
+[data-theme='azure'] h2,
+[data-theme='azure'] .page-title h1,
+[data-theme='azure'] .page-title h2,
+[data-theme='azure'] .brand-title {
+  letter-spacing: normal !important;
+  font-weight: 600;
+}
+
 
 
 

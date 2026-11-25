@@ -39,6 +39,7 @@ import {
 } from "./employee";
 import AccountsPage from "./pages/AccountsPage";
 import AgentsPage from "./pages/AgentsPage";
+import CourtPage from "./pages/CourtPage";
 import ChannelsPage from "./pages/ChannelsPage";
 import ChatPage from "./pages/chat/ChatPage";
 import ChatGalleryPage from "./pages/chat/ChatGalleryPage";
@@ -580,7 +581,11 @@ function Shell({
             <Routes>
               <Route
                 path="/enterprise"
-                element={<Navigate to="/enterprise/dashboard" replace />}
+                element={<Navigate to="/enterprise/court" replace />}
+              />
+              <Route
+                path="/enterprise/court"
+                element={<CourtPage onLogout={onLogout} />}
               />
               <Route
                 path="/enterprise/platform"
