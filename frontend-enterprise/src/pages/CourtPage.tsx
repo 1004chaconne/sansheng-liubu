@@ -236,6 +236,14 @@ export default function CourtPage({ onLogout }: { onLogout?: () => void }) {
             >
               官牒档案
             </button>
+            <button
+              type="button"
+              onClick={() => navigate(EnterpriseRoute.Handbook)}
+              title="这套官署怎么运转：谁起草、谁把关、谁派活"
+              className="h-[32px] rounded-[3px] border border-border px-[14px] text-[12.5px] tracking-[0.08em] text-foreground transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+            >
+              办理章程
+            </button>
           </div>
         </div>
       </div>

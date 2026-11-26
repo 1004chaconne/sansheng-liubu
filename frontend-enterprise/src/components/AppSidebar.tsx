@@ -41,6 +41,8 @@ import IconMagicWand from '../assets/icons/cap-magicwand.svg?react';
 import IconClipboard from '../assets/icons/cap-clipboard.svg?react';
 import IconBriefcase from '../assets/icons/cap-briefcase.svg?react';
 import IconChat from '../assets/icons/action-chat.svg?react';
+import { useNavigate } from 'react-router-dom';
+
 import IconToggle from '../assets/icons/action-toggle.svg?react';
 import IconHeaderCollapse from '../assets/icons/header-collapse.svg?react';
 import IconAccounts from '../assets/icons/sys-accounts.svg?react';
@@ -66,7 +68,6 @@ type NavItem = {
 
 const PRIMARY_NAV: NavItem[] = [
   { route: EnterpriseRoute.Court, label: '政事堂', Icon: IconCourt },
-  { route: EnterpriseRoute.Platform, label: '开放广场平台', Icon: IconPlatform },
   { route: EnterpriseRoute.Agents, label: '我的数字员工', Icon: IconAgents },
   { route: EnterpriseRoute.Teams, label: '我的团队', Icon: IconTeams },
   { route: EnterpriseRoute.Channels, label: '渠道接入', Icon: IconGlobe },
@@ -77,6 +78,7 @@ const PROFILE_NAV: NavItem[] = [
   { route: EnterpriseRoute.ScheduledTasks, label: '定时任务', Icon: IconAlarm },
   { route: EnterpriseRoute.Memories, label: '记忆', Icon: IconHistory },
   { route: EnterpriseRoute.Feedback, label: '对话日志', Icon: IconCalendar },
+  { route: EnterpriseRoute.Handbook, label: '使用手册', Icon: IconFile },
 ];
 
 const CAPABILITY_NAV: NavItem[] = [
@@ -523,7 +525,7 @@ function CollapsedSidebar({
   return (
     <div className="flex h-full w-(--sidebar-width-icon) shrink-0 flex-col items-center gap-[32px] px-[16px] pt-[42px] pb-[10px]">
       <div className="flex w-full flex-col items-center gap-[10px]">
-        <button type="button" title="开放广场" className="flex items-center justify-center p-[10px]">
+        <button type="button" title="三省六部" className="flex items-center justify-center p-[10px]">
           <BrandLogo markOnly />
         </button>
         <Tooltip>
@@ -661,7 +663,7 @@ function ManagementSidebar({
       <div className="flex h-full w-(--sidebar-width) shrink-0 flex-col">
       <SidebarHeader className="gap-[24px] px-[20px] pt-[42px] group-data-[collapsible=icon]:px-[20px]">
         <div className="flex items-center justify-between">
-          <button type="button" title="开放广场">
+          <button type="button" title="三省六部">
             <BrandLogo wordmarkClassName="group-data-[collapsible=icon]:hidden" />
           </button>
           {!brandCollapsed && (
@@ -1077,8 +1079,18 @@ function ChatSessionSkeletonList({ rows = 5 }: { rows?: number }) {
 }
 
 function ChatFooterActions({ onOpenAdmin }: { onOpenAdmin: () => void }) {
+  const navigate = useNavigate();
   return (
-    <div className="flex items-center justify-center gap-[10px] pb-[20px]">
+    <div className="flex items-center justify-center gap-[8px] pb-[20px]">
+      <button
+        type="button"
+        onClick={() => navigate(EnterpriseRoute.Handbook)}
+        title="使用手册"
+        aria-label="使用手册"
+        className="flex size-[32px] shrink-0 items-center justify-center rounded-[8px] text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+      >
+        <IconFile className="size-[16px]!" />
+      </button>
       <button
         type="button"
         onClick={onOpenAdmin}

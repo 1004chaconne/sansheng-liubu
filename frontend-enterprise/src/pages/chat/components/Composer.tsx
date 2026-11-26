@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { employeeDisplayName } from '@/employee';
+import { departmentLabel } from '@/lib/six-ministries';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n';
 import type { ChatSlashCommand } from '@/types';
@@ -214,9 +215,20 @@ export default function Composer({ chat }: { chat: UseChatSession }) {
                 aria-label="员工信息"
                 className={cn(CHAT_COMPOSER_AVATAR_CLASS, 'block cursor-pointer outline-none')}
               >
-                <EmployeeAvatar profile={displayedProfile} size={44} className="size-full" />
+                <EmployeeAvatar
+                  agent={displayedAgent ?? undefined}
+                  profile={displayedAgent ? undefined : displayedProfile}
+                  size={44}
+                  className="size-full"
+                />
               </button>
             </HoverCardTrigger>
+            <span className="pointer-events-none absolute bottom-full left-[64px] z-10 mb-[10px] rounded-[6px] bg-[#f2f4f8] px-[7px] py-[3px] text-[10px] leading-none text-[#5b6376] whitespace-nowrap">
+              {departmentLabel(
+                displayedAgent ? employeeDisplayName(displayedAgent) : displayedProfile.roleName,
+                displayedProfile.roleName,
+              )}
+            </span>
             <HoverCardContent
               side="left"
               align="end"

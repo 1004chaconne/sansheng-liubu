@@ -1,16 +1,13 @@
 import { Button as UiButton } from '@/components/ui';
 import IconAccount from '../assets/icons/sys-accounts.svg?react';
 import IconAdd from '../assets/icons/add.svg?react';
-import IconGlobe from '../assets/icons/globe.svg?react';
 
 export default function EmptyEmployeeState({
   isAdmin,
   onCreate,
-  onBrowsePlatform,
 }: {
   isAdmin: boolean;
   onCreate: () => void;
-  onBrowsePlatform: () => void;
 }) {
   return (
     <div className="min-h-full w-full min-w-0 max-w-full box-border px-[48px] pt-[32px] pb-[43px] max-[900px]:px-[16px]">
@@ -28,7 +25,7 @@ export default function EmptyEmployeeState({
         <p className="mt-[10px] text-[14px] leading-[22px] text-[#757f9c]">
           {isAdmin
             ? '创建你的第一位数字员工，为它配置知识库、技能与工具，即可开始接管对话与任务。'
-            : '当前还没有可管理的数字员工，创建一位或从开放广场复制已发布的配置作为起点。'}
+            : '当前还没有可管理的数字员工，创建一位即可开始接管对话与任务。'}
         </p>
 
         <div className="mt-[28px] flex flex-wrap items-center justify-center gap-[12px]">
@@ -38,14 +35,6 @@ export default function EmptyEmployeeState({
           >
             <IconAdd className="size-[16px]" />
             新建数字员工
-          </UiButton>
-          <UiButton
-            variant="outline"
-            onClick={onBrowsePlatform}
-            className="inline-flex h-[42px] items-center gap-[8px] rounded-[14px] border-[0.5px] border-[#e3e7f1] bg-white px-[22px] text-[14px] font-normal text-[#464c5e] hover:bg-[#f6f6f6] hover:text-[#464c5e]"
-          >
-            <IconGlobe className="size-[16px]" />
-            浏览开放广场
           </UiButton>
         </div>
       </div>

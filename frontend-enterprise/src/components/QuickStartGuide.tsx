@@ -47,13 +47,6 @@ const STEPS: QuickStartStep[] = [
     side: "right",
   },
   {
-    title: "开放广场 · 共享与复用",
-    description: "汇集可共享的 SOP、知识库、技能和工具，新建数字员工时可以直接复制作为起点。",
-    route: EnterpriseRoute.Platform,
-    target: "route-/enterprise/platform",
-    side: "right",
-  },
-  {
     title: "员工档案 · 一目了然",
     description: "查看数字员工的基本信息、能力配置和工作情况，像翻真人员工的档案一样。",
     route: EnterpriseRoute.Dashboard,

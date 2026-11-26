@@ -55,8 +55,8 @@ import KnowledgeManagePage, { KnowledgeAddPage } from "./pages/KnowledgePage";
 import LoginPage from "./pages/LoginPage";
 import ModelsPage from "./pages/ModelsPage";
 import RuntimeSettingsPage from "./pages/RuntimeSettingsPage";
+import HandbookPage from "./pages/HandbookPage";
 import AdminPage from "./pages/admin/AdminPage";
-import OpenPlatformPage from "./pages/OpenPlatformPage";
 import PersonaPage from "./pages/PersonaPage";
 import SkillsPage from "./pages/SkillsPage";
 import TeamChatPage from "./pages/TeamChatPage";
@@ -409,7 +409,7 @@ function Shell({
     : "未选择";
   const selectedAgentCaption = selectedAgent
     ? selectedAgent.is_overall
-      ? "开放广场"
+      ? "整体智能体"
       : employeeProfile(selectedAgent).roleName
     : "-";
   function openCreateAgentModal() {
@@ -574,7 +574,6 @@ function Shell({
             <EmptyEmployeeState
               isAdmin={isAdmin}
               onCreate={openCreateAgentModal}
-              onBrowsePlatform={() => navigate(EnterpriseRoute.Platform)}
             />
           )}
           {!isDistillRoute && !showEmployeeEmptyState && (
@@ -586,26 +585,6 @@ function Shell({
               <Route
                 path="/enterprise/court"
                 element={<CourtPage onLogout={onLogout} />}
-              />
-              <Route
-                path="/enterprise/platform"
-                element={
-                  <OpenPlatformPage
-                    currentUser={auth.user}
-                    isAdmin={isAdmin}
-                    onLogout={onLogout}
-                  />
-                }
-              />
-              <Route
-                path="/enterprise/platform/:kind"
-                element={
-                  <OpenPlatformPage
-                    currentUser={auth.user}
-                    isAdmin={isAdmin}
-                    onLogout={onLogout}
-                  />
-                }
               />
               <Route
                 path="/enterprise/dashboard"
@@ -791,6 +770,12 @@ function Shell({
                 }
               />
               <Route
+                path="/enterprise/handbook"
+                element={
+                  <HandbookPage currentUser={auth.user} onLogout={onLogout} />
+                }
+              />
+              <Route
                 path="/enterprise/tools"
                 element={
                   <ToolsPage currentUser={auth.user} onLogout={onLogout} />
@@ -923,7 +908,7 @@ function Shell({
                     {sourceAgents.map((agent) => (
                       <SelectItem key={agent.id} value={agent.id}>
                         {agent.is_overall
-                          ? "开放广场"
+                          ? "整体智能体"
                           : `${employeeDisplayNameWithCreator(agent)} · ${employeeProfile(agent).roleName}${isGalleryEmployee(agent) ? " · 广场" : ""}`}
                       </SelectItem>
                     ))}
