@@ -562,6 +562,12 @@ def open_tasks_summary(db: Session, team: Team) -> list[str]:
         dependencies = list(row.depends_on_task_ids_json or [])
         if dependencies:
             line += f" 前置任务={','.join(dependencies)} 激活条件={row.activation_condition_json or {}}"
+        # 🔴 2026-11-26：把「在等什么」写进 TL 上下文。否则任务只是停着，
+        # TL 不知道它在等人回答，用户也就永远不知道该补什么。
+        report = row.report_json if isinstance(row.report_json, dict) else {}
+        if report.get("needs_input"):
+            question = str(report.get("question") or "").strip().replace("\n", " ")
+            line += f" ⏳等人补充信息:{question[:200]}"
         result.append(line)
     return result
 

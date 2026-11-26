@@ -30,6 +30,42 @@ DEFAULT_TASK_TIMEOUT_MINUTES = 30.0
 # 参与超时判定的任务状态:终态(done/escalated)与待启动(pending/rework)不扫
 TIMEOUT_SCAN_STATUSES = ("bidding", "in_progress", "review")
 
+# 🔴 2026-11-26：成员执行「心跳停滞」阈值（分钟）。
+# 为什么单独一条：任务靠 30 分钟超时兜底太慢，而卡住的执行看起来一直在忙——
+# 实测 TaskFrame 停在 running、updated_at 冻结，却要等半小时才升级。
+# 这里盯的是**执行帧是否还在动**，不是任务创建了多久。
+DEFAULT_STALL_MINUTES = 3.0
+
+
+def task_stall_minutes(team: Team) -> float:
+    config = team.config_json if isinstance(team.config_json, dict) else {}
+    try:
+        value = float(config.get("task_stall_minutes", DEFAULT_STALL_MINUTES))
+    except (TypeError, ValueError):
+        return DEFAULT_STALL_MINUTES
+    return value if value > 0 else DEFAULT_STALL_MINUTES
+
+
+def _stalled_frame_stale(db: Session, task: TeamTask, minutes: float, now: datetime) -> bool:
+    """任务在 in_progress 且其执行帧停止更新超过阈值 → 判为停滞。"""
+    if task.status != "in_progress" or not task.session_id:
+        return False
+    try:
+        from app.db.models import HarnessTaskFrameRecord
+    except Exception:  # noqa: BLE001
+        return False
+    frame = db.exec(
+        select(HarnessTaskFrameRecord)
+        .where(
+            HarnessTaskFrameRecord.session_id == task.session_id,
+            HarnessTaskFrameRecord.status.in_(["running", "pending"]),
+        )
+        .order_by(HarnessTaskFrameRecord.created_at.desc())
+    ).first()
+    if frame is None:
+        return False
+    return now - frame.updated_at >= timedelta(minutes=minutes)
+
 
 def task_timeout_minutes(team: Team) -> float:
     """团队任务超时阈值(分钟):默认 30,非法配置(非 dict/非数字/非正数)回退默认。"""
@@ -59,8 +95,11 @@ def sweep_timed_out_tasks(db: Session, *, now: datetime | None = None) -> list[T
         if team is None:
             continue
         timeout_minutes = task_timeout_minutes(team)
-        if now - task.updated_at < timedelta(minutes=timeout_minutes):
+        stall_minutes = task_stall_minutes(team)
+        stalled = _stalled_frame_stale(db, task, stall_minutes, now)
+        if not stalled and now - task.updated_at < timedelta(minutes=timeout_minutes):
             continue
+        reason = "stalled" if stalled else "timeout"
         previous = task.status
         apply_task_transition(
             db,
@@ -69,7 +108,7 @@ def sweep_timed_out_tasks(db: Session, *, now: datetime | None = None) -> list[T
             actor_type="system",
             actor_id=None,
             event_type="task_escalated",
-            payload={"reason": "timeout", "timeout_minutes": timeout_minutes},
+            payload={"reason": reason, "timeout_minutes": timeout_minutes, "stall_minutes": stall_minutes},
         )
         for wake in db.exec(
             select(TeamWakeEvent).where(
@@ -80,7 +119,7 @@ def sweep_timed_out_tasks(db: Session, *, now: datetime | None = None) -> list[T
             if str(payload.get("task_id") or "") != task.id:
                 continue
             wake.status = "failed"
-            wake.error = "timeout"
+            wake.error = reason
             wake.updated_at = utc_now()
             db.add(wake)
         db.commit()

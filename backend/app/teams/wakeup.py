@@ -63,6 +63,37 @@ from app.teams.service import (
 
 logger = logging.getLogger(__name__)
 
+# 🔴 团队执行链路专用诊断日志（2026-11-26）。
+# 为什么单独开：dev 模式下 `runtime_logging` 未配置，普通 logger 的 INFO 不会落盘；
+# 而这条链路此前一旦抛异常就静默消失，导致「任务一直 in_progress、事件停在 claimed、
+# 日志里一行都没有」。这里直写独立文件，不依赖全局日志配置。
+# 排查完可以并入主日志，但**不要删掉异常落库那段**。
+_diag_logger: logging.Logger | None = None
+
+
+def _diag() -> logging.Logger:
+    global _diag_logger
+    if _diag_logger is not None:
+        return _diag_logger
+    lg = logging.getLogger("staffdeck.teams.wakeup.diag")
+    if not lg.handlers:
+        try:
+            from app import paths as _paths
+
+            log_dir = _paths.user_data_dir() / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            handler = logging.FileHandler(log_dir / "team-wake.log", encoding="utf-8")
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+            )
+            lg.addHandler(handler)
+        except Exception:  # noqa: BLE001 - 日志失败不能影响主流程
+            lg.addHandler(logging.NullHandler())
+    lg.setLevel(logging.INFO)
+    lg.propagate = False
+    _diag_logger = lg
+    return lg
+
 # claimed 是一个带租约的执行态，而不是永久锁。后台线程/服务异常退出后，
 # sweeper 会依据 updated_at 心跳把事件恢复为 pending 并重新派发。
 WAKE_LEASE_TIMEOUT_SECONDS = 180.0
@@ -250,6 +281,15 @@ def build_tl_review_message(db: Session, team: Team, task: TeamTask) -> str:
         lines.append("团队黑板(相关工作记忆):")
         lines.extend(blackboard)
     lines.append(f"成员报告:{report_text}")
+    if report.get("needs_input"):
+        question = str(report.get("question") or "").strip()
+        lines.append(
+            "⚠️ 成员这一轮是在**等补充信息**，不是交了活。请在回复里把要补充的信息"
+            "**一条条问清楚**（能给出可选答案的，顺带给出选项），不要给 verdict，"
+            "不要重新派单。人答完之后，你再用 rework 把答案带回给成员继续做。"
+        )
+        if question:
+            lines.append(f"成员原话:{question}")
     lines.append(TL_REVIEW_INSTRUCTION)
     suggestions = report.get("blackboard_suggestions")
     if isinstance(suggestions, list) and suggestions:
@@ -494,14 +534,25 @@ def _wake_heartbeat(wake_event_id: str, stop_event: threading.Event, data_servic
 
 
 def _execute_wakeup_in_background(wake_event_id: str, *, data_services) -> None:
+    # 🔴 排查用日志（2026-11-26）：此前这条后台链路一旦抛异常就静默消失，
+    # 现象是「任务一直 in_progress、事件停在 claimed、日志里一行都没有」。
+    # 这里每个退出分支都留痕，异常一律 log.exception + 落库 error，禁止静默。
+    _diag().info("team-wake 开始: wake_event_id=%s", wake_event_id)
     with data_services.session(None, purpose="team-wake") as db:
         if not team_module_enabled(db):
+            _diag().warning("team-wake 跳过（团队模块未启用）: wake_event_id=%s", wake_event_id)
             return
         if not claim_wake_event(db, wake_event_id):
+            _diag().warning("team-wake 跳过（抢占失败，可能已被其他进程领取）: wake_event_id=%s", wake_event_id)
             return
         event = db.get(TeamWakeEvent, wake_event_id)
         if event is None:
+            _diag().warning("team-wake 跳过（事件不存在）: wake_event_id=%s", wake_event_id)
             return
+        _diag().info(
+            "team-wake 已认领: wake_event_id=%s agent=%s trigger=%s",
+            wake_event_id, event.target_agent_id, event.trigger_type,
+        )
         from staffdeck_harness.runtime.actors import restore_actor
         try:
             restore_actor(db, event.tenant_id, (event.payload_json or {}).get("_runtime_context"))
@@ -527,6 +578,27 @@ def _execute_wakeup_in_background(wake_event_id: str, *, data_services) -> None:
         heartbeat.start()
         try:
             execute_wake_event(db, event)
+            db.refresh(event)
+            _diag().info(
+                "team-wake 完成: wake_event_id=%s agent=%s status=%s error=%s",
+                wake_event_id, event.target_agent_id, event.status, (event.error or "")[:200],
+            )
+        except Exception as exc:  # noqa: BLE001 - 后台链路必须兜住并把原因落库
+            _diag().exception(
+                "team-wake 执行失败: wake_event_id=%s agent=%s",
+                wake_event_id, getattr(event, "target_agent_id", "?"),
+            )
+            try:
+                event.status = "failed"
+                event.error = f"{type(exc).__name__}: {exc}"[:500]
+                db.add(event)
+                db.commit()
+                _record_wake_lifecycle(
+                    db, event, "wake_failed", {"error": event.error},
+                )
+                db.commit()
+            except Exception:  # noqa: BLE001
+                _diag().exception("team-wake 失败状态落库时又出错: wake_event_id=%s", wake_event_id)
         finally:
             heartbeat_stop.set()
             heartbeat.join(timeout=1.0)
@@ -669,6 +741,21 @@ def _record_wake_queued(
     )
 
 
+def task_review_required(team: Team) -> bool:
+    """成员交完活是否要走 TL 验收（review）。
+
+    🔴 2026-11-26：原实现是「只要任务由 TL 派发（team_run_id 非空）就直接 done，
+    永不进 review」——等于门下省这一层对 AI 派发的任务完全失效。
+    这里改成默认**要验收**，与三省六部的设计一致（有起草就得有人把关）。
+    想退回旧行为，在团队 config 里设 require_task_review=false。
+    """
+    config = team.config_json if isinstance(team.config_json, dict) else {}
+    value = config.get("require_task_review", True)
+    if isinstance(value, str):
+        return value.strip().lower() not in {"0", "false", "no", "off"}
+    return bool(value)
+
+
 def _drain_member_queue(db: Session, team: Team, agent_id: str) -> None:
     """成员任务终态后出队:有空闲额度时拉起该成员本团队最老的 pending 执行类唤醒。"""
     if _member_in_progress_count(db, team, agent_id) >= member_concurrency(team):
@@ -723,6 +810,11 @@ def _team_harness_outcome(
         statuses.append(str(result.get("status") or "").strip() or frame.status)
     if all(status == "completed" for status in statuses):
         return "completed"
+    # 🔴 2026-11-26 用户拍板：handoff（转人工）算「已交人」，不是失败。
+    # 理由：报价这类工作里，「查不到要现询」「客户档要人定价」「撞红线」都是常态，
+    # 把 handoff 判成失败，等于逼员工硬着头皮编一个价再交上来。
+    if any(status == "handoff" for status in statuses):
+        return "handoff"
     if any(status in {"awaiting_user", "needs_input"} for status in statuses):
         return "needs_input"
     raise RuntimeError("一个或多个 TaskFrame 未完成,团队任务执行失败。")
@@ -1064,20 +1156,43 @@ def _execute_member_task(db: Session, event: TeamWakeEvent, team: Team, agent: S
         "finished_at": utc_now().isoformat(),
     }
     if outcome == "needs_input":
-        # 成员需要补充信息(如索要合同文本):保留提问,升级给人;
-        # 人可通过改判/退回重做把补充信息带回给成员(rework 通道即答复通道)
+        # 🔴 2026-11-26 用户拍板（方案 B）：成员要补充信息时**不进 escalated 终态**。
+        # 原因：escalated 在 open_tasks_summary 里不出现，等于「等待」在 TL 眼里消失了，
+        # 任务就此沉底；而「等信息」是正常状态，不是失败。
+        # 改为进 review（可重入：review → rework → in_progress），让 TL 在对话里向人提问，
+        # 人答完后 TL 用 rework 把补充信息带回给成员（rework 通道即答复通道）。
         task.report_json["needs_input"] = True
+        task.report_json["question"] = reply[:2000]
         db.add(task)
         apply_task_transition(
             db,
             task,
-            "escalated",
+            "review",
             actor_type="agent",
             actor_id=agent.id,
             event_type="task_needs_input",
             payload={"wake_event_id": event.id, "question": reply[:500]},
         )
+        db.add(task)
+        leader = get_team_leader(db, team.id)
+        if leader is None:
+            apply_task_transition(
+                db, task, "escalated", actor_type="system", actor_id=None,
+                event_type="task_escalated",
+                payload={"reason": "团队缺少 TL,无法向人转达成员的追问"},
+            )
+            db.commit()
+            return
         db.commit()
+        wake = enqueue_wake_event(
+            db,
+            team=team,
+            target_agent_id=leader.agent_id,
+            trigger_type="task_report",
+            payload={"task_id": task.id},
+        )
+        db.commit()
+        start_wakeup_async(wake.id, db=db)
         return
     # 成员黑板建议:最终回复 + frame 级 reply_fragment 并集解析;裁决权在 TL,此处只暂存
     suggestions = parse_blackboard_suggestions(reply)
@@ -1093,7 +1208,8 @@ def _execute_member_task(db: Session, event: TeamWakeEvent, team: Team, agent: S
                 break
     if suggestions:
         task.report_json["blackboard_suggestions"] = suggestions
-    if task.team_run_id:
+    if task.team_run_id and not task_review_required(team):
+        # 显式关掉验收的团队才直接 done；默认走下面的 review
         apply_task_transition(
             db,
             task,
