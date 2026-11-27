@@ -42,7 +42,11 @@ export function buildSessionFilterOptions(
     }));
 
   return [
-    { value: 'all', label: `全部会话 · ${sessions.length}` },
+    {
+      value: 'all',
+      // The sidebar lists one row per employee, so the aggregate count is people, not sessions.
+      label: `全部员工 · ${counts.size + teamCounts.size}`,
+    },
     ...rows.map((agent) => {
       const count = counts.get(agent.id) || 0;
       return {

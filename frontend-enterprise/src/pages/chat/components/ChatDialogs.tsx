@@ -59,6 +59,11 @@ export default function ChatDialogs({ chat }: { chat: UseChatSession }) {
     pendingDelete,
     setPendingDelete,
     confirmDeleteSession,
+    archiveTarget,
+    archiveKeepCount,
+    setArchiveKeepCount,
+    cancelArchiveHistory,
+    confirmArchiveHistory,
     tenantId,
     canConfigureModels,
     modelSetupOpen,
@@ -237,6 +242,58 @@ export default function ChatDialogs({ chat }: { chat: UseChatSession }) {
               保存
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(archiveTarget)} onOpenChange={(open) => !open && cancelArchiveHistory()}>
+        <DialogContent className="max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle>整理「{archiveTarget?.agentName}」的历史档</DialogTitle>
+          </DialogHeader>
+          {archiveTarget && (
+            <div className="flex flex-col gap-[14px] text-[13px] leading-relaxed text-[#4b5261]">
+              <p>
+                共 {archiveTarget.count} 档。归档后这些档从左侧列表消失，
+                <strong className="font-semibold text-[#18181a]">消息与执行记录全部保留</strong>
+                ，需要时可以恢复。
+              </p>
+              <label className="flex flex-wrap items-center gap-[8px]">
+                <span>保留最近</span>
+                <Input
+                  type="number"
+                  min={0}
+                  max={archiveTarget.count}
+                  value={archiveKeepCount}
+                  aria-label="保留最近几档"
+                  onChange={(event) => {
+                    const next = Number(event.target.value);
+                    setArchiveKeepCount(
+                      Number.isFinite(next) ? Math.max(0, Math.min(archiveTarget.count, next)) : 0,
+                    );
+                  }}
+                  className="w-[76px]"
+                />
+                <span>
+                  档，其余{' '}
+                  <strong className="font-semibold text-[#18181a]">
+                    {Math.max(0, archiveTarget.count - archiveKeepCount)}
+                  </strong>{' '}
+                  档归档
+                </span>
+              </label>
+              <div className="flex justify-end gap-[8px]">
+                <Button variant="outline" onClick={cancelArchiveHistory}>
+                  取消
+                </Button>
+                <Button
+                  onClick={() => void confirmArchiveHistory()}
+                  disabled={archiveTarget.count - archiveKeepCount <= 0}
+                >
+                  归档 {Math.max(0, archiveTarget.count - archiveKeepCount)} 档
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

@@ -56,6 +56,7 @@ import LoginPage from "./pages/LoginPage";
 import ModelsPage from "./pages/ModelsPage";
 import RuntimeSettingsPage from "./pages/RuntimeSettingsPage";
 import HandbookPage from "./pages/HandbookPage";
+import OpenPlatformPage from "./pages/OpenPlatformPage";
 import AdminPage from "./pages/admin/AdminPage";
 import PersonaPage from "./pages/PersonaPage";
 import SkillsPage from "./pages/SkillsPage";
@@ -585,6 +586,26 @@ function Shell({
               <Route
                 path="/enterprise/court"
                 element={<CourtPage onLogout={onLogout} />}
+              />
+              <Route
+                path="/enterprise/platform"
+                element={
+                  <OpenPlatformPage
+                    currentUser={auth.user}
+                    isAdmin={isAdmin}
+                    onLogout={onLogout}
+                  />
+                }
+              />
+              <Route
+                path="/enterprise/platform/:kind"
+                element={
+                  <OpenPlatformPage
+                    currentUser={auth.user}
+                    isAdmin={isAdmin}
+                    onLogout={onLogout}
+                  />
+                }
               />
               <Route
                 path="/enterprise/dashboard"

@@ -83,6 +83,7 @@ from app.session.message_read import message_read
 from app.session.origin import pilotdeck_origin_session_ids
 from app.session.session_schema import (
     ChatAttachmentRead,
+    ChatSessionArchiveRequest,
     ChatSessionCreateRequest,
     ChatSessionRead,
     ChatSessionUpdateRequest,
@@ -1897,6 +1898,86 @@ def create_chat_session(
     return session_read(row)
 
 
+@router.post("/sessions/archive")
+def archive_chat_sessions(
+    request: ChatSessionArchiveRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+) -> dict[str, object]:
+    """Hide an employee's older 档 instead of deleting them.
+
+    归档只改 `status`：消息、执行轨迹、workspace 一律保留，可随时恢复。
+    按 `agent_id + keep_latest` 归档时以服务端排行为准（客户端传来的顺序不可信）。
+    """
+    _ensure_request_tenant(request.tenant_id, current_user)
+    ensure_tenant(db, request.tenant_id)
+    query = (
+        select(ChatSession)
+        .where(
+            ChatSession.tenant_id == request.tenant_id,
+            ChatSession.user_id == current_user.id,
+            ChatSession.team_id.is_(None),
+            or_(
+                ChatSession.channel.is_(None),
+                ChatSession.channel != "skill_test",
+            ),
+            ChatSession.status != "archived",
+        )
+        .order_by(ChatSession.updated_at.desc())
+    )
+    if request.agent_id:
+        query = query.where(ChatSession.agent_id == request.agent_id)
+    if request.session_ids:
+        query = query.where(ChatSession.id.in_(request.session_ids))
+
+    rows = list(db.exec(query).all())
+    if request.session_ids:
+        targets = rows
+        kept = 0
+    else:
+        kept = min(max(request.keep_latest, 0), len(rows))
+        targets = rows[kept:]
+
+    if request.dry_run:
+        return {
+            "archived": 0,
+            "kept": kept,
+            "candidates": [row.id for row in targets],
+            "titles": [row.title or row.id for row in targets],
+            "dry_run": True,
+        }
+
+    for row in targets:
+        row.status = "archived"
+        db.add(row)
+    if targets:
+        db.commit()
+    return {
+        "archived": len(targets),
+        "kept": kept,
+        "candidates": [row.id for row in targets],
+        "dry_run": False,
+    }
+
+
+@router.post("/sessions/{session_id}/restore", response_model=ChatSessionRead)
+def restore_chat_session(
+    session_id: str,
+    tenant_id: str = Query(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_session),
+) -> ChatSessionRead:
+    """把一条已归档的档恢复回侧栏。"""
+    _ensure_request_tenant(tenant_id, current_user)
+    row = _get_user_chat_session(db, tenant_id, current_user.id, session_id)
+    row.status = "active"
+    row.updated_at = utc_now()
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return session_read(row)
+
+
 @router.get("/sessions", response_model=list[ChatSessionRead])
 def list_chat_sessions(
     tenant_id: str = Query(...),
@@ -1910,6 +1991,8 @@ def list_chat_sessions(
             select(ChatSession)
             .where(
                 ChatSession.tenant_id == tenant_id,
+                # 归档只隐藏，不删除；恢复走 /sessions/{id}/restore。
+                ChatSession.status != "archived",
                 or_(
                     ChatSession.channel.is_(None),
                     ChatSession.channel != "skill_test",

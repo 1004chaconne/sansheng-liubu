@@ -297,6 +297,23 @@ class ChatSessionUpdateRequest(BaseModel):
     title: str
 
 
+class ChatSessionArchiveRequest(BaseModel):
+    """Hide old 档 of one employee without deleting them.
+
+    `keep_latest` is how many of the newest sessions stay visible; the rest are
+    marked `status="archived"` and disappear from the sidebar list but keep all
+    messages, traces and workspaces untouched.
+    """
+
+    tenant_id: str
+    user_id: Optional[str] = None
+    agent_id: Optional[str] = None
+    keep_latest: int = 3
+    # Explicit ids bypass keep_latest so the UI can preview and confirm a set.
+    session_ids: list[str] = []
+    dry_run: bool = False
+
+
 class ChatSessionRead(BaseModel):
     id: str
     tenant_id: str

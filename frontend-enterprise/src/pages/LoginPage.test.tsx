@@ -61,8 +61,8 @@ describe('LoginPage', () => {
     const user = userEvent.setup();
     renderLogin();
 
-    expect(screen.getByText('我们来做什么？')).toBeTruthy();
-    expect(screen.getByAltText('StaffDeck 产品预览')).toBeTruthy();
+    expect(screen.getByText('数字员工政事堂')).toBeTruthy();
+    expect(screen.getByAltText('三省六部 产品预览')).toBeTruthy();
     expect(screen.queryByLabelText('账号')).toBeNull();
 
     await user.click(screen.getByRole('button', { name: '登录' }));

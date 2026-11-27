@@ -4,10 +4,12 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MemoryRouter } from 'react-router-dom';
+
 import { I18nProvider } from '@/i18n';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import type { AgentProfileRead, TeamRead } from '@/types';
+import type { AgentProfileRead, ChatSession, TeamRead } from '@/types';
 
 import AppSidebar from './AppSidebar';
 
@@ -182,8 +184,9 @@ describe('AppSidebar chat variant group conversations', () => {
     ],
   };
 
-  function renderChatSidebar(scopeTeams: TeamRead[] = [teamWithLeader]) {
-    const sessions = [
+  function renderChatSidebar(
+    scopeTeams: TeamRead[] = [teamWithLeader],
+    sessions: ChatSession[] = [
       {
         id: 'session-tl',
         tenant_id: 'tenant_demo',
@@ -201,59 +204,128 @@ describe('AppSidebar chat variant group conversations', () => {
         status: 'active',
         updated_at: '2026-08-01T00:00:00Z',
       },
-    ];
+    ],
+    onArchiveHistory?: (agentId: string, agentName: string, count: number) => void,
+  ) {
     return render(
-      <I18nProvider>
-        <TooltipProvider>
-          <SidebarProvider>
-            <AppSidebar
-              variant="chat"
-              sessions={sessions}
-              agents={[agent, leaderAgent]}
-              scopeTeams={scopeTeams}
-              sessionFilter="all"
-              onSessionFilterChange={() => {}}
-              sessionFilterOptions={[{ value: 'all', label: '全部员工 · 2' }]}
-              isSessionUnread={() => false}
-              onOpenSession={() => {}}
-              onOpenGallery={() => {}}
-              onRenameSession={() => {}}
-              onDeleteSession={() => {}}
-              onOpenAdmin={() => {}}
-            />
-          </SidebarProvider>
-        </TooltipProvider>
-      </I18nProvider>,
+      <MemoryRouter>
+        <I18nProvider>
+          <TooltipProvider>
+            <SidebarProvider>
+              <AppSidebar
+                variant="chat"
+                sessions={sessions}
+                agents={[agent, leaderAgent]}
+                scopeTeams={scopeTeams}
+                sessionFilter="all"
+                onSessionFilterChange={() => {}}
+                sessionFilterOptions={[{ value: 'all', label: '全部员工 · 2' }]}
+                isSessionUnread={() => false}
+                onOpenSession={() => {}}
+                onOpenGallery={() => {}}
+                onRenameSession={() => {}}
+                onDeleteSession={() => {}}
+                onOpenAdmin={() => {}}
+                onArchiveHistory={onArchiveHistory}
+              />
+            </SidebarProvider>
+          </TooltipProvider>
+        </I18nProvider>
+      </MemoryRouter>,
     );
   }
 
   it('renders employee sessions and team groups as different conversation types', () => {
     renderChatSidebar();
 
-    expect(screen.getByLabelText('群聊')).toBeTruthy();
+    // 团队行：标题是团队名，副标题是成员数与团队群聊标识。
     const groupRow = screen.getByText('增长团队').closest('[role="button"]');
     expect(groupRow?.textContent).toContain('2 位成员 · 团队群聊');
-    const employeeRow = screen.getByText('写公告').closest('[role="button"]');
+    // 员工行：标题是员工名，副标题是最近一档的问题。
+    const employeeRow = screen.getByText('小艾').closest('[role="button"]');
+    expect(employeeRow?.textContent).toContain('写公告');
     expect(employeeRow?.textContent).not.toContain('群聊');
+  });
+
+  it('collapses several sessions of one employee into a single row', () => {
+    renderChatSidebar([teamWithLeader], [
+      {
+        id: 'session-member-old',
+        tenant_id: 'tenant_demo',
+        agent_id: 'agent-1',
+        title: '写公告',
+        status: 'active',
+        updated_at: '2026-08-01T00:00:00Z',
+      },
+      {
+        id: 'session-member-new',
+        tenant_id: 'tenant_demo',
+        agent_id: 'agent-1',
+        title: '改公告',
+        status: 'active',
+        updated_at: '2026-08-02T00:00:00Z',
+      },
+    ]);
+
+    expect(screen.getAllByText('小艾')).toHaveLength(1);
+    expect(screen.getByText('2 档')).toBeTruthy();
+    const employeeRow = screen.getByText('小艾').closest('[role="button"]');
+    expect(employeeRow?.textContent).toContain('改公告');
+    // 旧档默认折叠，点开才出现。
+    expect(screen.queryByText('写公告')).toBeNull();
+  });
+
+  it('unfolds the older sessions of an employee on demand', async () => {
+    const user = userEvent.setup();
+    renderChatSidebar([teamWithLeader], [
+      {
+        id: 'session-member-old',
+        tenant_id: 'tenant_demo',
+        agent_id: 'agent-1',
+        title: '写公告',
+        status: 'active',
+        updated_at: '2026-08-01T00:00:00Z',
+      },
+      {
+        id: 'session-member-new',
+        tenant_id: 'tenant_demo',
+        agent_id: 'agent-1',
+        title: '改公告',
+        status: 'active',
+        updated_at: '2026-08-02T00:00:00Z',
+      },
+    ]);
+
+    await user.click(screen.getByLabelText('展开 2 档历史'));
+
+    expect(screen.getByText('写公告')).toBeTruthy();
+    // 最新一档同时出现在员工行副标题与展开的叶子行里。
+    expect(screen.getAllByText('改公告').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('offers to archive older 档 of an employee with the current count', async () => {
+    const user = userEvent.setup();
+    const onArchiveHistory = vi.fn();
+    const rows: ChatSession[] = [0, 1, 2, 3].map((index) => ({
+      id: `session-old-${index}`,
+      tenant_id: 'tenant_demo',
+      agent_id: 'agent-1',
+      title: `公告 ${index}`,
+      status: 'active',
+      updated_at: `2026-08-0${index + 1}T00:00:00Z`,
+    }));
+    renderChatSidebar([teamWithLeader], rows, onArchiveHistory);
+
+    await user.click(screen.getByLabelText('展开 4 档历史'));
+    await user.click(screen.getByText('整理历史（隐藏旧档，可恢复）'));
+
+    expect(onArchiveHistory).toHaveBeenCalledWith('agent-1', '小艾', 4);
   });
 
   it('keeps a group label while the team roster is still loading', () => {
     renderChatSidebar([]);
 
     expect(screen.getByText('增长团队')).toBeTruthy();
-    expect(screen.getByLabelText('群聊')).toBeTruthy();
-  });
-
-  it('shows the employee name in a styled tooltip on avatar hover', async () => {
-    const user = userEvent.setup();
-    renderChatSidebar();
-
-    const employeeRow = screen.getByText('写公告').closest('[role="button"]');
-    const avatar = employeeRow?.querySelector('span');
-    expect(avatar).toBeTruthy();
-    await user.hover(avatar as Element);
-
-    const tooltip = await screen.findByRole('tooltip');
-    expect(tooltip.textContent).toContain('小艾');
+    expect(screen.getByText('团队群聊')).toBeTruthy();
   });
 });

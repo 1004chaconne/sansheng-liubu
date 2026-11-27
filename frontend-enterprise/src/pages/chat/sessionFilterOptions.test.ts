@@ -39,7 +39,7 @@ describe('chat session filter options', () => {
     ];
 
     expect(buildSessionFilterOptions(agents, sessions)).toEqual([
-      { value: 'all', label: '全部会话 · 3' },
+      { value: 'all', label: '全部员工 · 2' },
       { value: 'agent-a', label: 'Alpha · 2' },
       { value: 'agent-b', label: 'Beta · 1' },
     ]);
@@ -65,7 +65,7 @@ describe('chat session filter options', () => {
     };
 
     expect(buildSessionFilterOptions([agent('agent-a', 'Alpha')], [group])).toEqual([
-      { value: 'all', label: '全部会话 · 1' },
+      { value: 'all', label: '全部员工 · 1' },
       { value: 'team:team-1', label: '增长团队 · 1' },
     ]);
   });

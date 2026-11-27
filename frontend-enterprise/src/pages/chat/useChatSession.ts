@@ -358,6 +358,8 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
   const [renameSession, setRenameSession] = useState<ChatSession | null>(null);
   const [renameTitle, setRenameTitle] = useState('');
   const [pendingDelete, setPendingDelete] = useState<ChatSession | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<{ agentId: string; agentName: string; count: number } | null>(null);
+  const [archiveKeepCount, setArchiveKeepCount] = useState(3);
   const [storeTick, setStoreTick] = useState(0);
   const [streamTick, setStreamTick] = useState(0);
   const [traceTick, setTraceTick] = useState(0);
@@ -1902,6 +1904,40 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
       notify.error(error instanceof Error ? error.message : '删除失败');
     }
   }, [forgetMissingSession, getStreamSlot, navigate, pendingDelete, redirectToLogin, sessionId, tenantId]);
+
+  const requestArchiveHistory = useCallback((agentId: string, agentName: string, count: number) => {
+    setArchiveTarget({ agentId, agentName, count });
+    setArchiveKeepCount(count > 3 ? 3 : Math.max(0, count - 1));
+  }, []);
+
+  const cancelArchiveHistory = useCallback(() => setArchiveTarget(null), []);
+
+  const confirmArchiveHistory = useCallback(async () => {
+    const target = archiveTarget;
+    if (!target) return;
+    setArchiveTarget(null);
+    try {
+      const result = await api.post<{ archived: number; kept: number; candidates: string[] }>(
+        '/api/chat/sessions/archive',
+        {
+          tenant_id: tenantId,
+          agent_id: target.agentId,
+          keep_latest: archiveKeepCount,
+        },
+      );
+      await loadSessions();
+      if (sessionId && result.candidates?.includes(sessionId)) {
+        navigate(CHAT_BASE_PATH);
+      }
+      notify.success(`已归档 ${result.archived} 档，保留最近 ${result.kept} 档`);
+    } catch (error) {
+      if (isAuthError(error)) {
+        redirectToLogin();
+        return;
+      }
+      notify.error(error instanceof Error ? error.message : '归档失败');
+    }
+  }, [archiveKeepCount, archiveTarget, loadSessions, navigate, redirectToLogin, sessionId, tenantId]);
 
   const abortStream = useCallback(() => {
     if (!activeConversationId) return;
@@ -3554,6 +3590,12 @@ export function useChatSession(options: UseChatSessionOptions = {}) {
     // delete dialog
     pendingDelete,
     setPendingDelete,
+    archiveTarget,
+    archiveKeepCount,
+    setArchiveKeepCount,
+    requestArchiveHistory,
+    cancelArchiveHistory,
+    confirmArchiveHistory,
     confirmDeleteSession,
     // handoff
     handoffs,

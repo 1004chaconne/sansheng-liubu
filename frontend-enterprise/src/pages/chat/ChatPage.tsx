@@ -41,6 +41,8 @@ export default function ChatPage() {
         sessionFilterOptions={chat.sessionFilterOptions}
         isSessionUnread={(session) => sessionHasUnreadReply(session, chat.sessionReadTimes, chat.sessionId)}
         onOpenSession={chat.openSession}
+        onNewSessionForAgent={chat.openDraftForAgent}
+        onArchiveHistory={chat.requestArchiveHistory}
         onNewConversation={() => {
           const selectedAgent = chat.sessionAgentFilter === 'all'
             ? chat.displayedAgent

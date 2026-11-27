@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Badge,
   DropdownMenu,
@@ -22,10 +22,11 @@ import type { ComponentType, SVGProps } from 'react';
 import { cn } from '@/lib/utils';
 import { FRAMEWORK_MANAGEMENT_INCLUDED } from '@/lib/productFeatures';
 import { teamIdFromScope, toTeamScope } from '@/lib/agent-scope-storage';
+import { groupSessionsByEmployee, type SessionGroup } from '@/lib/sessionGroups';
 import EmployeeAvatar from './EmployeeAvatar';
 import BrandLogo from './BrandLogo';
 import StaffdeckIcon from './StaffdeckIcon';
-import { employeeDisplayNameWithCreator, employeeProfile, staffdeckDisplayText } from '../employee';
+import { employeeDisplayName, employeeDisplayNameWithCreator, employeeProfile, staffdeckDisplayText } from '../employee';
 import { EnterpriseRoute } from '../enums/routes';
 import type { AgentProfileRead, ChatSession, TeamRead } from '../types';
 import IconPlatform from '../assets/icons/nav-platform.svg?react';
@@ -68,6 +69,7 @@ type NavItem = {
 
 const PRIMARY_NAV: NavItem[] = [
   { route: EnterpriseRoute.Court, label: '政事堂', Icon: IconCourt },
+  { route: EnterpriseRoute.Platform, label: '开放广场平台', Icon: IconPlatform },
   { route: EnterpriseRoute.Agents, label: '我的数字员工', Icon: IconAgents },
   { route: EnterpriseRoute.Teams, label: '我的团队', Icon: IconTeams },
   { route: EnterpriseRoute.Channels, label: '渠道接入', Icon: IconGlobe },
@@ -132,6 +134,10 @@ export type AppSidebarChatProps = {
   sessionFilterOptions: ChatSessionFilterOption[];
   isSessionUnread: (session: ChatSession) => boolean;
   onOpenSession: (id: string) => void;
+  /** Open a fresh 档 for a specific employee without leaving this one. */
+  onNewSessionForAgent?: (agentId: string) => void;
+  /** Hide older 档 of one employee (archive, never delete). */
+  onArchiveHistory?: (agentId: string, agentName: string, count: number) => void;
   onNewConversation?: () => void;
   onOpenGallery: () => void;
   /** Highlights the 数字员工广场 entry as the active menu (chat gallery route). */
@@ -742,19 +748,9 @@ function ManagementSidebar({
 // while swapping the body for the "员工会话" session list.
 // ---------------------------------------------------------------------------
 
-function sessionAgentFor(session: ChatSession, agents: AgentProfileRead[]): AgentProfileRead | null {
-  if (!session.agent_id) return null;
-  return agents.find((agent) => agent.id === session.agent_id) || null;
-}
-
-function sessionTitleFor(session: ChatSession, _agent: AgentProfileRead | null): string {
+function sessionTitleFor(session: ChatSession): string {
   if (session.title) return staffdeckDisplayText(session.title);
   return session.id || '新对话';
-}
-
-function sessionSubtitleFor(session: ChatSession, _agent: AgentProfileRead | null): string {
-  const recent = (session.last_agent_question || session.summary || '').replace(/^最近回复[:：]\s*/, '');
-  return recent ? staffdeckDisplayText(recent) : '新对话';
 }
 
 function TeamGroupAvatar({
@@ -938,11 +934,28 @@ function ChatHandoffButton({
   );
 }
 
-function ChatSessionRow({
+/** How many 档 of one employee are previewed before the "显示全部" affordance. */
+const SESSION_PREVIEW_LIMIT = 8;
+
+/** Native tooltips should carry a readable hint, not a full pasted message. */
+function shortHint(value: string, limit = 60): string {
+  const text = value.trim();
+  return text.length > limit ? `${text.slice(0, limit)}…` : text;
+}
+
+function sessionDayLabel(value?: string): string {
+  const ms = Date.parse(value || '');
+  if (!Number.isFinite(ms)) return '';
+  const date = new Date(ms);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return date.getFullYear() === new Date().getFullYear()
+    ? `${month}-${day}`
+    : `${date.getFullYear()}-${month}-${day}`;
+}
+
+function SessionLeafRow({
   session,
-  agent,
-  team,
-  agents,
   active,
   unread,
   onOpenSession,
@@ -950,24 +963,14 @@ function ChatSessionRow({
   onDeleteSession,
 }: {
   session: ChatSession;
-  agent: AgentProfileRead | null;
-  team: TeamRead | null;
-  agents: AgentProfileRead[];
   active: boolean;
   unread: boolean;
   onOpenSession: (id: string) => void;
   onRenameSession: (session: ChatSession) => void;
   onDeleteSession: (session: ChatSession) => void;
 }) {
-  const title = sessionTitleFor(session, agent);
-  const subtitle = sessionSubtitleFor(session, agent);
-  const isTeamGroup = Boolean(session.team_id);
-  const displayTitle = isTeamGroup
-    ? team?.name || session.team_name || title.replace(/^团队\s*/, '').replace(/\s*·\s*TL 对话$/, '')
-    : title;
-  const displaySubtitle = isTeamGroup
-    ? team ? `${team.members.length} 位成员 · 团队群聊` : '团队群聊'
-    : subtitle;
+  const label = sessionTitleFor(session);
+  const day = sessionDayLabel(session.updated_at);
 
   return (
     <div
@@ -981,54 +984,16 @@ function ChatSessionRow({
         }
       }}
       className={cn(
-        'group/session relative flex w-full cursor-pointer items-center gap-[6px] rounded-[14px] py-[6px] pl-[8px] pr-[12px] text-left transition-colors',
-        active
-          ? 'border-[0.5px] border-[var(--border)] bg-[var(--surface)] shadow-[0px_0px_5px_rgba(0,0,0,0.05)]'
-          : 'border-[0.5px] border-transparent hover:bg-[#f4f5f7]',
+        'group/leaf flex w-full cursor-pointer items-center gap-[6px] rounded-[10px] py-[5px] pl-[46px] pr-[8px] text-left transition-colors',
+        active ? 'bg-[var(--surface)] text-[var(--foreground)]' : 'text-[#757f9c] hover:bg-[#f4f5f7]',
       )}
     >
-      <Tooltip>
-        <TooltipTrigger asChild>
-          {isTeamGroup ? (
-            <TeamGroupAvatar team={team} agents={agents} />
-          ) : (
-            <span className="inline-grid size-[42px] shrink-0 place-items-center overflow-hidden rounded-[12px] bg-[#f1f2f5] text-[var(--muted-foreground)]">
-              {agent ? (
-              <EmployeeAvatar agent={agent} size={42} radius={12} />
-              ) : (
-                <IconChatBubble className="size-[20px]!" />
-              )}
-            </span>
-          )}
-        </TooltipTrigger>
-        {(agent || isTeamGroup) && (
-          <TooltipContent side="right" align="center">
-            {isTeamGroup ? `${displayTitle} · 团队群聊` : agent?.name}
-          </TooltipContent>
-        )}
-      </Tooltip>
-      <span className="flex min-w-0 flex-1 flex-col justify-between self-stretch py-[3px]">
-        <span className="flex min-w-0 items-center gap-[4px]">
-          <span className="truncate text-[14px] leading-none text-[var(--muted-foreground)] capitalize" title={displayTitle}>
-            {displayTitle}
-          </span>
-          {isTeamGroup && (
-            <span
-              aria-label="群聊"
-              className="inline-flex h-[16px] shrink-0 items-center rounded-full bg-[#e8f0ff] px-[5px] text-[10px] font-medium leading-none text-[#1a71ff]"
-            >
-              群聊
-            </span>
-          )}
-        </span>
-        <span className="truncate text-[12px] leading-none text-[#757f9c]" title={displaySubtitle}>
-          {displaySubtitle}
-        </span>
+      <span className="min-w-0 flex-1 truncate text-[12.5px] leading-none" title={shortHint(label)}>
+        {label}
       </span>
-      {unread && (
-        <span className="ml-[2px] size-[7px] shrink-0 rounded-full bg-[#f5483b]" aria-label="未读回复" />
-      )}
-      {!isTeamGroup && <span className="ml-auto hidden shrink-0 items-center gap-[6px] group-hover/session:flex">
+      {unread && <span className="size-[6px] shrink-0 rounded-full bg-[#f5483b]" aria-label="未读回复" />}
+      <span className="shrink-0 text-[11px] leading-none text-[#a2a8b8] group-hover/leaf:hidden">{day}</span>
+      <span className="hidden shrink-0 items-center gap-[2px] group-hover/leaf:flex">
         <button
           type="button"
           aria-label="重命名会话"
@@ -1036,9 +1001,9 @@ function ChatSessionRow({
             event.stopPropagation();
             onRenameSession(session);
           }}
-          className="inline-grid size-[24px] place-items-center rounded-[10px] text-[#858b9c] transition-colors hover:bg-[var(--border)] hover:text-[var(--foreground)]"
+          className="inline-grid size-[20px] place-items-center rounded-[6px] text-[#858b9c] transition-colors hover:bg-[var(--border)] hover:text-[var(--foreground)]"
         >
-          <IconEdit className="size-[14px]!" />
+          <IconEdit className="size-[12px]!" />
         </button>
         <button
           type="button"
@@ -1047,11 +1012,187 @@ function ChatSessionRow({
             event.stopPropagation();
             onDeleteSession(session);
           }}
-          className="inline-grid size-[24px] place-items-center rounded-[10px] text-[#858b9c] transition-colors hover:bg-[#fce7e7] hover:text-[#f5483b]"
+          className="inline-grid size-[20px] place-items-center rounded-[6px] text-[#858b9c] transition-colors hover:bg-[#fce7e7] hover:text-[#f5483b]"
         >
-          <IconTrash className="size-[14px]!" />
+          <IconTrash className="size-[12px]!" />
         </button>
-      </span>}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * One row per employee (or per team): avatar + name + latest question.
+ * Clicking opens the newest 档; the chevron unfolds the older 档 of the same person.
+ */
+function EmployeeSessionGroupRow({
+  group,
+  agent,
+  team,
+  agents,
+  activeSessionId,
+  isSessionUnread,
+  expanded,
+  onToggleExpanded,
+  onOpenSession,
+  onRenameSession,
+  onDeleteSession,
+  onNewSessionForAgent,
+  showAllSessions = false,
+  onShowAllSessions,
+  onArchiveHistory,
+}: {
+  group: SessionGroup;
+  agent: AgentProfileRead | null;
+  team: TeamRead | null;
+  agents: AgentProfileRead[];
+  activeSessionId?: string;
+  isSessionUnread: (session: ChatSession) => boolean;
+  expanded: boolean;
+  onToggleExpanded: () => void;
+  onOpenSession: (id: string) => void;
+  onRenameSession: (session: ChatSession) => void;
+  onDeleteSession: (session: ChatSession) => void;
+  onNewSessionForAgent?: (agentId: string) => void;
+  showAllSessions?: boolean;
+  onShowAllSessions?: () => void;
+  onArchiveHistory?: (agentId: string, agentName: string, count: number) => void;
+}) {
+  const isTeamGroup = Boolean(group.teamId);
+  const teamTitleFromSession = (group.latest.title || '')
+    .replace(/^团队\s*/, '')
+    .replace(/\s*·\s*TL 对话$/, '');
+  const title = isTeamGroup
+    ? team?.name || group.latest.team_name || teamTitleFromSession || '团队群聊'
+    : agent
+      ? employeeDisplayName(agent)
+      : '未分配员工';
+  const subtitle = isTeamGroup
+    ? team ? `${team.members.length} 位成员 · 团队群聊` : '团队群聊'
+    : group.latest.title
+      ? staffdeckDisplayText(group.latest.title)
+      : '新对话';
+  const active = group.sessions.some((session) => session.id === activeSessionId);
+  const unread = group.unreadCount > 0;
+  const canExpand = group.count > 1;
+
+  return (
+    <div className="flex flex-col">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onOpenSession(group.latest.id)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onOpenSession(group.latest.id);
+          }
+        }}
+        className={cn(
+          'group/employee relative flex w-full cursor-pointer items-center gap-[6px] rounded-[14px] py-[6px] pl-[8px] pr-[8px] text-left transition-colors',
+          active
+            ? 'border-[0.5px] border-[var(--border)] bg-[var(--surface)] shadow-[0px_0px_5px_rgba(0,0,0,0.05)]'
+            : 'border-[0.5px] border-transparent hover:bg-[#f4f5f7]',
+        )}
+      >
+        <span className="relative inline-grid size-[42px] shrink-0 place-items-center overflow-hidden rounded-[12px] bg-[#f1f2f5] text-[var(--muted-foreground)]">
+          {isTeamGroup ? (
+            <TeamGroupAvatar team={team} agents={agents} />
+          ) : agent ? (
+            <EmployeeAvatar agent={agent} size={42} radius={12} />
+          ) : (
+            <IconChatBubble className="size-[20px]!" />
+          )}
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col justify-between self-stretch py-[3px]">
+          <span className="flex min-w-0 items-center gap-[4px]">
+            <span className="truncate text-[14px] leading-none text-[var(--muted-foreground)]" title={title}>
+              {title}
+            </span>
+            {canExpand && (
+              <span className="shrink-0 text-[10px] leading-none text-[#b3b9c6]">{group.count} 档</span>
+            )}
+          </span>
+          <span className="flex min-w-0 items-center gap-[4px]">
+            <span className="truncate text-[12px] leading-none text-[#757f9c]" title={shortHint(subtitle, 80)}>
+              {subtitle}
+            </span>
+          </span>
+        </span>
+        {unread && (
+          <span className="size-[7px] shrink-0 rounded-full bg-[#f5483b]" aria-label="未读回复" />
+        )}
+        {canExpand ? (
+          <button
+            type="button"
+            aria-label={expanded ? '收起历史档' : `展开 ${group.count} 档历史`}
+            aria-expanded={expanded}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleExpanded();
+            }}
+            className={cn(
+              'inline-grid size-[20px] shrink-0 place-items-center rounded-[6px] transition-colors',
+              expanded
+                ? 'text-[#858b9c] hover:bg-[var(--border)] hover:text-[var(--foreground)]'
+                : 'text-[#c8ccd6] hover:bg-[var(--border)] hover:text-[#858b9c]',
+            )}
+          >
+            <IconChevronDown className={cn('size-[12px]! transition-transform', expanded && 'rotate-180')} />
+          </button>
+        ) : !isTeamGroup && onNewSessionForAgent && agent ? (
+          <button
+            type="button"
+            aria-label={`给 ${title} 另起一档`}
+            onClick={(event) => {
+              event.stopPropagation();
+              onNewSessionForAgent(agent.id);
+            }}
+            className="hidden size-[20px] shrink-0 place-items-center rounded-[6px] text-[#858b9c] transition-colors hover:bg-[var(--border)] hover:text-[var(--foreground)] group-hover/employee:inline-grid"
+          >
+            <IconAdd className="size-[12px]!" />
+          </button>
+        ) : null}
+      </div>
+      {expanded && (
+        <div className="flex flex-col gap-[1px] pb-[4px]">
+          {(showAllSessions ? group.sessions : group.sessions.slice(0, SESSION_PREVIEW_LIMIT)).map((session) => (
+            <SessionLeafRow
+              key={session.id}
+              session={session}
+              active={session.id === activeSessionId}
+              unread={isSessionUnread(session)}
+              onOpenSession={onOpenSession}
+              onRenameSession={onRenameSession}
+              onDeleteSession={onDeleteSession}
+            />
+          ))}
+          {!showAllSessions && group.count > SESSION_PREVIEW_LIMIT && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onShowAllSessions?.();
+              }}
+              className="w-full cursor-pointer rounded-[10px] py-[5px] pl-[46px] pr-[8px] text-left text-[11.5px] leading-none text-[#a2a8b8] transition-colors hover:bg-[#f4f5f7] hover:text-[#757f9c]"
+            >
+              显示全部 {group.count} 档
+            </button>
+          )}
+          {!isTeamGroup && agent && onArchiveHistory && group.count > 3 && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onArchiveHistory(agent.id, title, group.count);
+              }}
+              className="w-full cursor-pointer rounded-[10px] py-[5px] pl-[46px] pr-[8px] text-left text-[11.5px] leading-none text-[#a2a8b8] transition-colors hover:bg-[#f4f5f7] hover:text-[#757f9c]"
+            >
+              整理历史（隐藏旧档，可恢复）
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1210,28 +1351,35 @@ function CollapsedChatSidebar({
           </Tooltip>
         )}
 
-        <span className="text-[10px] leading-none text-[var(--muted-foreground)]">会话</span>
+        <span className="text-[10px] leading-none text-[var(--muted-foreground)]">员工</span>
 
         <div className="no-scrollbar mx-[-8px] flex min-h-0 w-[calc(100%+16px)] flex-1 flex-col items-center gap-[10px] overflow-y-auto py-[2px]">
           {sessionsLoading
             ? Array.from({ length: 5 }).map((_, index) => (
                 <span key={index} className="size-[36px] shrink-0 animate-pulse rounded-[10px] bg-[#eef0f4]" />
               ))
-            : sessions.map((session) => {
-                const agent = sessionAgentFor(session, agents);
-                const active = session.id === activeSessionId;
-                const unread = isSessionUnread(session);
-                const title = sessionTitleFor(session, agent);
-                const team = session.team_id
-                  ? scopeTeams.find((item) => item.id === session.team_id) || null
+            : groupSessionsByEmployee(sessions, { isUnread: isSessionUnread }).map((group) => {
+                const agent = group.agentId
+                  ? agents.find((item) => item.id === group.agentId) || null
                   : null;
+                const team = group.teamId
+                  ? scopeTeams.find((item) => item.id === group.teamId) || null
+                  : null;
+                const active = group.sessions.some((session) => session.id === activeSessionId);
+                const unread = group.unreadCount > 0;
+                const latestTitle = group.latest.title ? staffdeckDisplayText(group.latest.title) : '新对话';
+                const label = group.teamId
+                  ? team?.name || group.latest.team_name || '团队群聊'
+                  : agent
+                    ? employeeDisplayNameWithCreator(agent)
+                    : '未分配员工';
                 return (
-                  <Tooltip key={session.id}>
+                  <Tooltip key={group.key}>
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => onOpenSession(session.id)}
-                        aria-label={title}
+                        onClick={() => onOpenSession(group.latest.id)}
+                        aria-label={`${label} · ${group.count} 档`}
                         className={cn(
                           'relative flex shrink-0 items-center justify-center overflow-hidden transition-shadow',
                           active
@@ -1239,12 +1387,17 @@ function CollapsedChatSidebar({
                             : 'size-[36px] rounded-[10px] bg-[#D8D8D8] text-[var(--muted-foreground)]',
                         )}
                       >
-                        {session.team_id ? (
+                        {group.teamId ? (
                           <TeamGroupAvatar team={team} agents={agents} size={active ? 36 : 32} />
                         ) : agent ? (
                           <EmployeeAvatar agent={agent} size={active ? 34 : 36} radius={10} />
                         ) : (
                           <IconChatBubble className="size-[18px]!" />
+                        )}
+                        {group.count > 1 && (
+                          <span className="absolute bottom-[1px] right-[1px] inline-grid h-[13px] min-w-[13px] place-items-center rounded-full bg-[#18181a] px-[3px] text-[9px] leading-none text-white ring-[1.5px] ring-white">
+                            {group.count}
+                          </span>
                         )}
                         {unread && (
                           <span className="absolute right-[2px] top-[2px] size-[7px] rounded-full bg-[#f5483b] ring-[1.5px] ring-white" aria-label="未读回复" />
@@ -1252,9 +1405,7 @@ function CollapsedChatSidebar({
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right" align="center">
-                      {session.team_id
-                        ? `${team?.name || session.team_name || title} · 团队群聊`
-                        : agent ? `${agent.name} · ${title}` : title}
+                      {label} · {group.count} 档
                     </TooltipContent>
                   </Tooltip>
                 );
@@ -1302,11 +1453,28 @@ function ChatSidebarVariant({
   onRenameSession,
   onDeleteSession,
   onOpenAdmin,
+  onNewSessionForAgent,
+  onArchiveHistory,
 }: AppSidebarChatProps) {
   const { toggleSidebar, state } = useSidebar();
   const collapsed = state === 'collapsed';
   const showSkeleton = sessionsLoading && sessions.length === 0;
   const teamById = new Map(scopeTeams.map((team) => [team.id, team]));
+  // One row per employee: the flat session list is folded underneath each person.
+  const employeeGroups = groupSessionsByEmployee(sessions, { isUnread: isSessionUnread });
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
+  const [fullGroups, setFullGroups] = useState<Set<string>>(() => new Set());
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+  const showAllOfGroup = (key: string) => {
+    setFullGroups((current) => new Set(current).add(key));
+  };
 
   if (collapsed) {
     return (
@@ -1385,7 +1553,7 @@ function ChatSidebarVariant({
                 <span>新建对话</span>
               </button>
             )}
-            <span className="text-[12px] leading-none text-[#858b9c]">会话</span>
+            <span className="text-[12px] leading-none text-[#858b9c]">员工</span>
           </div>
         </SidebarHeader>
 
@@ -1393,25 +1561,31 @@ function ChatSidebarVariant({
           <div className="flex flex-col gap-[2px] pb-[10px]">
             {showSkeleton ? (
               <ChatSessionSkeletonList />
-            ) : sessions.length === 0 ? (
+            ) : employeeGroups.length === 0 ? (
               <div className="flex flex-col items-center gap-[8px] py-[28px] text-center text-[12px] text-[#a2a8b8]">
                 <StaffdeckIcon name="inbox" size={22} />
-                <span>暂无历史会话</span>
+                <span>暂无员工对话</span>
               </div>
             ) : (
               <div className="flex flex-col gap-[2px]">
-                {sessions.map((session) => (
-                  <ChatSessionRow
-                    key={session.id}
-                    session={session}
-                    agent={sessionAgentFor(session, agents)}
-                    team={session.team_id ? teamById.get(session.team_id) || null : null}
+                {employeeGroups.map((group) => (
+                  <EmployeeSessionGroupRow
+                    key={group.key}
+                    group={group}
+                    agent={group.agentId ? agents.find((item) => item.id === group.agentId) || null : null}
+                    team={group.teamId ? teamById.get(group.teamId) || null : null}
                     agents={agents}
-                    active={session.id === activeSessionId}
-                    unread={isSessionUnread(session)}
+                    activeSessionId={activeSessionId}
+                    isSessionUnread={isSessionUnread}
+                    expanded={expandedGroups.has(group.key)}
+                    onToggleExpanded={() => toggleGroup(group.key)}
                     onOpenSession={onOpenSession}
                     onRenameSession={onRenameSession}
                     onDeleteSession={onDeleteSession}
+                    onNewSessionForAgent={onNewSessionForAgent}
+                    showAllSessions={fullGroups.has(group.key)}
+                    onShowAllSessions={() => showAllOfGroup(group.key)}
+                    onArchiveHistory={onArchiveHistory}
                   />
                 ))}
               </div>
