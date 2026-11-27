@@ -22,6 +22,10 @@ export type PlatformResourceDrawerProps = {
   useLabel: string;
   canManage?: boolean;
   deleting?: boolean;
+  /** 广场里「真停用」：仅工具类资源提供 */
+  enabled?: boolean;
+  toggling?: boolean;
+  onToggleEnabled?: (next: boolean) => void;
   hasPrev?: boolean;
   hasNext?: boolean;
   onClose: () => void;
@@ -83,6 +87,9 @@ export default function PlatformResourceDrawer({
   useLabel,
   canManage = false,
   deleting = false,
+  enabled,
+  toggling = false,
+  onToggleEnabled,
   hasPrev = false,
   hasNext = false,
   onClose,
@@ -165,6 +172,16 @@ export default function PlatformResourceDrawer({
         <DrawerDivider />
 
         <div className="flex shrink-0 justify-end gap-[10px]">
+          {canManage && onToggleEnabled && (
+            <button
+              type="button"
+              disabled={toggling}
+              onClick={() => onToggleEnabled(!enabled)}
+              className="inline-flex h-[34px] w-[80px] items-center justify-center gap-[4px] rounded-[10px] border-[0.5px] border-[#e3e7f1] bg-white text-[12px] text-[#464c5e] transition-colors hover:bg-[#f5f7fb] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {enabled ? '停用' : '启用'}
+            </button>
+          )}
           {canManage && onDelete && (
             <button
               type="button"

@@ -38,6 +38,7 @@ import {
 import { Button as UIButton } from '@/components/ui/button';
 import { notify } from '@/components/ui/app-toast';
 import { cn } from '@/lib/utils';
+import { makeToolPutter, setGroupEnabled, type ToolLike as ToolRowLike } from '../lib/toolEnablement';
 import { announceEnterpriseCapabilityCatalogChange } from '@/lib/capability-catalog-events';
 import {
   MENU_CONTENT_CLASS,
@@ -182,6 +183,55 @@ export default function ToolsPage({ currentUser, onLogout }: ToolPageProps = {})
       .catch((error) => notify.error(error instanceof Error ? error.message : '加载工具失败'))
       .finally(() => setLoading(false));
   };
+
+  // ---- 工具集 / 单工具 启停（单一真相源：tools.enabled）----
+  const [togglingIds, setTogglingIds] = useState<Record<string, boolean>>({});
+
+  async function applyEnabled(toolRows: ToolRowLike[], enabled: boolean, label: string) {
+    if (!toolRows.length) {
+      notify.error(`「${label}」下没有工具可切换`);
+      return;
+    }
+    const result = await setGroupEnabled(toolRows, enabled, makeToolPutter(agentQuery));
+    if (result.failed.length) {
+      const names = result.failed.slice(0, 3).map((item) => item.name).join('、');
+      notify.error(
+        `「${label}」${result.succeeded}/${result.total} 成功，失败 ${result.failed.length} 个：${names}`,
+      );
+    } else {
+      notify.success(`「${label}」已${enabled ? '启用' : '停用'} ${result.succeeded} 个工具`);
+    }
+    await load();
+  }
+
+  async function toggleOneTool(row: ToolRead, next: boolean) {
+    const key = row.id;
+    setTogglingIds((state) => ({ ...state, [key]: true }));
+    try {
+      await applyEnabled([row as unknown as ToolRowLike], next, row.display_name || row.name);
+    } finally {
+      setTogglingIds((state) => {
+        const copy = { ...state };
+        delete copy[key];
+        return copy;
+      });
+    }
+  }
+
+  async function toggleServer(server: MCPServerRead, next: boolean) {
+    const group = rows.filter((row) => row.mcp_server_id === server.id);
+    const key = server.id;
+    setTogglingIds((state) => ({ ...state, [key]: true }));
+    try {
+      await applyEnabled(group as unknown as ToolRowLike[], next, server.display_name || server.name);
+    } finally {
+      setTogglingIds((state) => {
+        const copy = { ...state };
+        delete copy[key];
+        return copy;
+      });
+    }
+  }
 
   useEffect(() => {
     if (!agentScopeLoaded) return;
@@ -559,9 +609,20 @@ export default function ToolsPage({ currentUser, onLogout }: ToolPageProps = {})
     {
       key: 'enabled',
       title: '启用',
-      width: 90,
+      width: 110,
       render: (row) => (
-        <StatusBadge tone={row.enabled ? 'green' : 'gray'}>{row.enabled ? '已启用' : '已停用'}</StatusBadge>
+        <div className="flex items-center gap-[6px]">
+          <Switch
+            size="sm"
+            checked={row.enabled}
+            disabled={Boolean(togglingIds[row.id])}
+            onCheckedChange={(next) => void toggleOneTool(row, next)}
+            aria-label={`${row.display_name || row.name} 启用开关`}
+          />
+          <span className={cn('text-[12px]', row.enabled ? 'text-[#0f9d58]' : 'text-[#858b9c]')}>
+            {row.enabled ? '已启用' : '已停用'}
+          </span>
+        </div>
       ),
     },
     {
@@ -635,10 +696,25 @@ export default function ToolsPage({ currentUser, onLogout }: ToolPageProps = {})
     {
       key: 'enabled',
       title: '启用',
-      width: 90,
-      render: (row) => (
-        <StatusBadge tone={row.enabled ? 'green' : 'gray'}>{row.enabled ? '已启用' : '已停用'}</StatusBadge>
-      ),
+      width: 140,
+      render: (row) => {
+        const group = rows.filter((tool) => tool.mcp_server_id === row.id);
+        const on = group.filter((tool) => tool.enabled).length;
+        return (
+          <div className="flex items-center gap-[6px]">
+            <Switch
+              size="sm"
+              checked={group.length > 0 && on === group.length}
+              disabled={Boolean(togglingIds[row.id]) || group.length === 0}
+              onCheckedChange={(next) => void toggleServer(row, next)}
+              aria-label={`工具集 ${row.display_name || row.name} 启用开关`}
+            />
+            <span className="text-[12px] text-[#858b9c]">
+              已启用 {on}/{group.length}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'actions',
@@ -656,6 +732,14 @@ export default function ToolsPage({ currentUser, onLogout }: ToolPageProps = {})
           >
             <IconRefresh className="size-[14px] shrink-0" />
             发现/同步
+          </UIButton>
+          <UIButton
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/enterprise/tools/sets/${row.id}`)}
+            className={RETURN_BUTTON_CLASS}
+          >
+            管理工具
           </UIButton>
           {canManageCurrentScope && (
             <UIButton

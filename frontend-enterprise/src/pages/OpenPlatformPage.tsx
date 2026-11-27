@@ -43,6 +43,8 @@ import {
   type PlatformStat,
 } from '@/components/openPlatform';
 import { persistSharedAgentScope, isTeamScope, readEmployeeScope } from '@/lib/agent-scope-storage';
+import { makeToolPutter, setGroupEnabled, type ToolLike as ToolRowLike } from '@/lib/toolEnablement';
+import { groupToolsByBucket } from '@/lib/toolGrouping';
 
 const ENTERPRISE_AGENT_STORAGE_KEY = 'ultrarag_enterprise_agent_scope';
 
@@ -67,6 +69,9 @@ type PlatformItem = {
   meta: string;
   tags: string[];
   agent?: AgentProfileRead;
+  /** 工具类专用：所属工具集与启用状态（广场按工具集分组用） */
+  bucket?: string;
+  enabled?: boolean;
 };
 
 const PLATFORM_CONFIGS: PlatformConfig[] = [
@@ -194,6 +199,8 @@ export default function OpenPlatformPage({
   const [deletingItemKey, setDeletingItemKey] = useState('');
   const [agentId, setAgentId] = useState(readEmployeeScope);
   const [detailItem, setDetailItem] = useState<{ kind: PlatformKind; item: PlatformItem } | null>(null);
+  // 广场工具「真停用」：改 tools.enabled（所有员工都不能再调），与工具页开关同源
+  const [togglingToolId, setTogglingToolId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ kind: PlatformKind; item: PlatformItem } | null>(null);
 
   useEffect(() => {
@@ -233,6 +240,30 @@ export default function OpenPlatformPage({
       setLoading(false);
     }
   }, []);
+
+  /** 广场里对单个工具做「真停用 / 启用」：改的是 tools.enabled，员工侧同步失效 */
+  const toggleToolEnabled = useCallback(
+    async (toolId: string, next: boolean) => {
+      const row = tools.find((item) => item.id === toolId);
+      if (!row) {
+        notify.error('找不到该工具，请刷新页面后重试');
+        return;
+      }
+      setTogglingToolId(toolId);
+      try {
+        const result = await setGroupEnabled([row as unknown as ToolRowLike], next, makeToolPutter(''));
+        if (result.failed.length) {
+          notify.error(`操作失败：${result.failed[0].message}`);
+          return;
+        }
+        notify.success(next ? '已启用（员工可再次调用）' : '已停用（所有员工都不能调用）');
+        await loadPlatformData();
+      } finally {
+        setTogglingToolId(null);
+      }
+    },
+    [tools, loadPlatformData],
+  );
 
   useEffect(() => {
     void loadPlatformData();
@@ -305,6 +336,8 @@ export default function OpenPlatformPage({
         description: item.description || '可配置到员工工具的工具。',
         meta: `${item.bucket || '工具'} / ${item.tool_type.toUpperCase()}`,
         tags: [item.method, item.enabled ? '已启用' : '已停用'],
+        bucket: item.bucket || '未分桶',
+        enabled: item.enabled,
       })),
   }), [generalSkills, knowledgeBases, skills, tools, visibleAgents]);
 
@@ -484,6 +517,11 @@ export default function OpenPlatformPage({
         useLabel={config.useLabel}
         canManage={canManagePlatform}
         deleting={deletingItemKey === deleteKey}
+        enabled={detailItem.kind === 'tools' ? tools.find((row) => row.id === item.id)?.enabled : undefined}
+        toggling={detailItem.kind === 'tools' && togglingToolId === item.id}
+        onToggleEnabled={
+          detailItem.kind === 'tools' ? (next) => void toggleToolEnabled(item.id, next) : undefined
+        }
         hasPrev={drawerIndex > 0}
         hasNext={drawerIndex >= 0 && drawerIndex < drawerItems.length - 1}
         onClose={() => setDetailItem(null)}
@@ -597,46 +635,63 @@ export default function OpenPlatformPage({
               isEmpty={previews.length === 0}
               onViewAll={() => navigate(`/enterprise/platform/${platform.kind}`)}
             >
-              {previews.map((item) => (
-                platform.kind === 'agents' && item.agent ? (
-                  <PlatformEmployeeCard
-                    key={item.id}
-                    avatar={(
-                      <EmployeeAvatar
-                        agent={item.agent}
-                        width={50}
-                        height={59}
-                        fit="contain"
-                        objectPosition="center bottom"
-                        className="overflow-visible! rounded-none! border-0! bg-transparent! bg-none! shadow-none! after:hidden!"
-                      />
-                    )}
-                    name={item.title}
-                    role={item.meta}
-                    online={item.agent.status === 'active'}
-                    description={item.description}
-                    stats={employeeStats(item.agent)}
-                    onOpen={() => setDetailItem({ kind: platform.kind, item })}
-                    onUnpublish={canManagePlatform
-                      ? () => setConfirmTarget({ kind: platform.kind, item })
-                      : undefined}
-                    unpublishing={deletingItemKey === platformItemDeleteKey(platform.kind, item)}
-                  />
-                ) : (
-                  <PlatformResourceCard
-                    key={item.id}
-                    icon={PLATFORM_RESOURCE_ICON[platform.kind]
-                      ? <img src={PLATFORM_RESOURCE_ICON[platform.kind]} alt="" className="size-[32px] shrink-0 object-contain" />
-                      : undefined}
-                    accent={PLATFORM_ACCENT[platform.kind]}
-                    title={item.title}
-                    meta={item.meta}
-                    description={item.description}
-                    tags={item.tags.slice(0, 2)}
-                    onClick={() => setDetailItem({ kind: platform.kind, item })}
-                  />
-                )
-              ))}
+              {(() => {
+                const renderCard = (item: PlatformItem) => (
+                  platform.kind === 'agents' && item.agent ? (
+                    <PlatformEmployeeCard
+                      key={item.id}
+                      avatar={(
+                        <EmployeeAvatar
+                          agent={item.agent}
+                          width={50}
+                          height={59}
+                          fit="contain"
+                          objectPosition="center bottom"
+                          className="overflow-visible! rounded-none! border-0! bg-transparent! bg-none! shadow-none! after:hidden!"
+                        />
+                      )}
+                      name={item.title}
+                      role={item.meta}
+                      online={item.agent.status === 'active'}
+                      description={item.description}
+                      stats={employeeStats(item.agent)}
+                      onOpen={() => setDetailItem({ kind: platform.kind, item })}
+                      onUnpublish={canManagePlatform
+                        ? () => setConfirmTarget({ kind: platform.kind, item })
+                        : undefined}
+                      unpublishing={deletingItemKey === platformItemDeleteKey(platform.kind, item)}
+                    />
+                  ) : (
+                    <PlatformResourceCard
+                      key={item.id}
+                      icon={PLATFORM_RESOURCE_ICON[platform.kind]
+                        ? <img src={PLATFORM_RESOURCE_ICON[platform.kind]} alt="" className="size-[32px] shrink-0 object-contain" />
+                        : undefined}
+                      accent={PLATFORM_ACCENT[platform.kind]}
+                      title={item.title}
+                      meta={item.meta}
+                      description={item.description}
+                      tags={item.tags.slice(0, 2)}
+                      onClick={() => setDetailItem({ kind: platform.kind, item })}
+                    />
+                  )
+                );
+                // 工具广场按工具集（bucket）分组，避免 40+ 卡片平铺看起来杂乱
+                if (platform.kind === 'tools') {
+                  return groupToolsByBucket(items).map((group) => (
+                    <div key={group.bucket} className="flex w-full flex-col gap-[8px]">
+                      <div className="flex w-full items-center justify-between gap-[8px] px-[2px]">
+                        <span className="truncate text-[11px] font-medium text-[#464c5e]">{group.bucket}</span>
+                        <span className="shrink-0 text-[11px] text-[#a7adbb]">
+                          {group.enabled}/{group.total}
+                        </span>
+                      </div>
+                      {group.tools.map(renderCard)}
+                    </div>
+                  ));
+                }
+                return previews.map(renderCard);
+              })()}
             </PlatformColumn>
           );
         })}

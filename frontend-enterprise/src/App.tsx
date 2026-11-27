@@ -74,6 +74,7 @@ import ToolsPage, {
   ToolNewPage,
   ToolTestPage,
 } from "./pages/ToolsPage";
+import ToolSetDetailPage from "./pages/ToolSetDetailPage";
 import { useIsMobile } from "./hooks/use-mobile";
 import {
   Dialog,
@@ -816,6 +817,10 @@ function Shell({
                     onLogout={onLogout}
                   />
                 }
+              />
+              <Route
+                path="/enterprise/tools/sets/:serverId"
+                element={<ToolSetDetailPage onLogout={onLogout} />}
               />
               <Route
                 path="/enterprise/tools/mcp/:serverId/edit"
